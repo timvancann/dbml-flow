@@ -2,6 +2,7 @@
 import { useAppStore } from '@/app/store';
 import { LoadButton } from '@/app/LoadButton';
 import { SelectorInput } from '@/app/SelectorInput';
+import { HelpModal } from '@/app/HelpModal';
 
 export function SelectionBar() {
   const pathMode = useAppStore((s) => s.pathMode);
@@ -44,7 +45,8 @@ export function SelectionBar() {
         Find path
       </button>
 
-      {/* Slot for "?" Help button (Task 3) */}
+      {/* Help modal */}
+      <HelpModal />
 
       {/* Load button */}
       <LoadButton />
