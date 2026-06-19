@@ -5,7 +5,7 @@ import { useAppStore } from '@/app/store';
 import { classifyTable, type TableKind } from '@/canvas/classifyTable';
 import { focusSelector } from '@/app/focus';
 
-type Segment = 'all' | 'fact' | 'dim' | 'marts';
+type Segment = 'all' | 'fact' | 'dim';
 
 type VRow =
   | { type: 'header'; groupName: string; color: string; count: number }
@@ -25,7 +25,6 @@ export function LeftRail() {
   const model = useAppStore((s) => s.model);
   const setSelector = useAppStore((s) => s.setSelector);
   const setSelectedTable = useAppStore((s) => s.setSelectedTable);
-  const savedMarts = useAppStore((s) => s.savedMarts);
   const [query, setQuery] = useState('');
   const [segment, setSegment] = useState<Segment>('all');
   const parentRef = useRef<HTMLDivElement>(null);
@@ -45,11 +44,6 @@ export function LeftRail() {
     }
 
     const rows: VRow[] = [];
-
-    if (segment === 'marts') {
-      // show saved marts as flat list (handled outside virtualizer)
-      return { rows: [], factCount, dimCount };
-    }
 
     const groupEntries = [...model.groups.entries()].sort(([a], [b]) => a.localeCompare(b));
     let colorIdx = 0;
@@ -115,7 +109,6 @@ export function LeftRail() {
     { key: 'all', label: 'All' },
     { key: 'fact', label: `Facts ${factCount}` },
     { key: 'dim', label: `Dims ${dimCount}` },
-    { key: 'marts', label: '★ Marts' },
   ];
 
   return (
@@ -143,101 +136,83 @@ export function LeftRail() {
         ))}
       </div>
 
-      {segment === 'marts' ? (
-        <div className="flex-1 overflow-auto px-2 pb-3">
-          {savedMarts.length === 0 ? (
-            <div className="text-[12px] text-[var(--ink-3)] px-2 py-4">No saved marts yet.</div>
-          ) : (
-            savedMarts.map((m) => (
-              <button
-                key={m.name}
-                onClick={() => setSelector(m.selector)}
-                className="block w-full text-left text-[12.5px] text-[var(--dim)] py-1 px-2 truncate"
-              >
-                ★ {m.name}
-              </button>
-            ))
-          )}
-        </div>
-      ) : (
-        <div ref={parentRef} className="flex-1 overflow-auto px-2 pb-3">
-          <div style={{ height: virtualizer.getTotalSize(), position: 'relative' }}>
-            {virtualizer.getVirtualItems().map((vi) => {
-              const row = rows[vi.index];
-              if (!row) return null;
+      <div ref={parentRef} className="flex-1 overflow-auto px-2 pb-3">
+        <div style={{ height: virtualizer.getTotalSize(), position: 'relative' }}>
+          {virtualizer.getVirtualItems().map((vi) => {
+            const row = rows[vi.index];
+            if (!row) return null;
 
-              if (row.type === 'header') {
-                return (
-                  <div
-                    key={vi.key}
-                    className="absolute top-0 left-0 w-full flex items-center gap-2 px-2"
-                    style={{
-                      height: vi.size,
-                      transform: `translateY(${vi.start}px)`,
-                      paddingTop: 9,
-                      paddingBottom: 5,
-                      fontSize: 11,
-                      letterSpacing: '.04em',
-                      textTransform: 'uppercase',
-                      color: 'var(--ink-3)',
-                    }}
-                  >
-                    <span
-                      style={{
-                        width: 7,
-                        height: 7,
-                        borderRadius: 2,
-                        background: row.color,
-                        display: 'inline-block',
-                        flexShrink: 0,
-                      }}
-                    />
-                    <span className="truncate">{row.groupName.split('.').pop() ?? row.groupName}</span>
-                    <span
-                      className="ml-auto"
-                      style={{ fontFamily: '"Spline Sans Mono", monospace', fontSize: 10.5, color: 'var(--ink-3)' }}
-                    >
-                      {row.count}
-                    </span>
-                  </div>
-                );
-              }
-
-              // table row
-              const { name, kind } = row;
+            if (row.type === 'header') {
               return (
-                <button
+                <div
                   key={vi.key}
-                  onClick={() => focusTable(name)}
-                  className="absolute top-0 left-0 w-full flex items-center gap-2 px-2 rounded-md hover:bg-[var(--panel-2)]"
+                  className="absolute top-0 left-0 w-full flex items-center gap-2 px-2"
                   style={{
                     height: vi.size,
                     transform: `translateY(${vi.start}px)`,
-                    fontSize: 12.5,
-                    color: 'var(--ink-2)',
-                    fontFamily: '"Spline Sans Mono", monospace',
+                    paddingTop: 9,
+                    paddingBottom: 5,
+                    fontSize: 11,
+                    letterSpacing: '.04em',
+                    textTransform: 'uppercase',
+                    color: 'var(--ink-3)',
                   }}
                 >
                   <span
-                    className="grid place-items-center flex-none rounded"
                     style={{
-                      width: 15,
-                      height: 15,
-                      fontSize: 9,
-                      fontWeight: 700,
-                      color: kind === 'fact' ? 'var(--fact)' : kind === 'dim' ? 'var(--dim)' : 'var(--ink-3)',
-                      background: kind === 'fact' ? 'var(--fact-dim)' : kind === 'dim' ? 'var(--dim-dim)' : 'transparent',
+                      width: 7,
+                      height: 7,
+                      borderRadius: 2,
+                      background: row.color,
+                      display: 'inline-block',
+                      flexShrink: 0,
                     }}
+                  />
+                  <span className="truncate">{row.groupName.split('.').pop() ?? row.groupName}</span>
+                  <span
+                    className="ml-auto"
+                    style={{ fontFamily: '"Spline Sans Mono", monospace', fontSize: 10.5, color: 'var(--ink-3)' }}
                   >
-                    {kind === 'fact' ? 'f' : kind === 'dim' ? 'd' : '·'}
+                    {row.count}
                   </span>
-                  <span className="truncate">{name.split('.').pop()}</span>
-                </button>
+                </div>
               );
-            })}
-          </div>
+            }
+
+            // table row
+            const { name, kind } = row;
+            return (
+              <button
+                key={vi.key}
+                onClick={() => focusTable(name)}
+                className="absolute top-0 left-0 w-full flex items-center gap-2 px-2 rounded-md hover:bg-[var(--panel-2)]"
+                style={{
+                  height: vi.size,
+                  transform: `translateY(${vi.start}px)`,
+                  fontSize: 12.5,
+                  color: 'var(--ink-2)',
+                  fontFamily: '"Spline Sans Mono", monospace',
+                }}
+              >
+                <span
+                  className="grid place-items-center flex-none rounded"
+                  style={{
+                    width: 15,
+                    height: 15,
+                    fontSize: 9,
+                    fontWeight: 700,
+                    color: kind === 'fact' ? 'var(--fact)' : kind === 'dim' ? 'var(--dim)' : 'var(--ink-3)',
+                    background: kind === 'fact' ? 'var(--fact-dim)' : kind === 'dim' ? 'var(--dim-dim)' : 'transparent',
+                  }}
+                >
+                  {kind === 'fact' ? 'f' : kind === 'dim' ? 'd' : '·'}
+                </span>
+                <span className="truncate">{name.split('.').pop()}</span>
+              </button>
+            );
+          })}
         </div>
-      )}
+      </div>
     </div>
   );
 }

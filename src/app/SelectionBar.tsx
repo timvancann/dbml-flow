@@ -41,7 +41,6 @@ const chipBase: React.CSSProperties = {
 export function SelectionBar() {
   const selector = useAppStore((s) => s.selector);
   const setSelector = useAppStore((s) => s.setSelector);
-  const saveMart = useAppStore((s) => s.saveMart);
   const pathMode = useAppStore((s) => s.pathMode);
   const setPathMode = useAppStore((s) => s.setPathMode);
   const loadError = useAppStore((s) => s.loadError);
@@ -135,17 +134,6 @@ export function SelectionBar() {
 
       {/* Load button */}
       <LoadButton />
-
-      {/* Save button */}
-      <button
-        className="text-[12.5px] text-[var(--ink-2)] border border-[var(--line-2)] bg-[var(--panel-2)] px-2.5 py-1.5 rounded-lg"
-        onClick={() => {
-          const name = window.prompt('Save current selection as data mart:');
-          if (name) saveMart(name);
-        }}
-      >
-        ＋ Save data mart
-      </button>
 
       {/* Load error */}
       {loadError && (

@@ -4,7 +4,7 @@ import { useAppStore } from '@/app/store';
 const dbml = readFileSync('src/model/__fixtures__/grouped.dbml', 'utf8');
 
 beforeEach(() => {
-  useAppStore.setState({ model: null, selector: '', selectedTable: null, savedMarts: [], pathMode: false, pathStart: null, loadError: null });
+  useAppStore.setState({ model: null, selector: '', selectedTable: null, pathMode: false, pathStart: null, loadError: null });
 });
 
 describe('useAppStore', () => {
@@ -23,22 +23,6 @@ describe('useAppStore', () => {
   it('sets the selector', () => {
     useAppStore.getState().setSelector('group:sales');
     expect(useAppStore.getState().selector).toBe('group:sales');
-  });
-
-  it('saveMart upserts the current selector under a name', () => {
-    useAppStore.getState().setSelector('f_x+');
-    useAppStore.getState().saveMart('My Mart');
-    expect(useAppStore.getState().savedMarts).toEqual([{ name: 'My Mart', selector: 'f_x+' }]);
-    useAppStore.getState().setSelector('g:*sales');
-    useAppStore.getState().saveMart('My Mart'); // upsert, not duplicate
-    expect(useAppStore.getState().savedMarts).toEqual([{ name: 'My Mart', selector: 'g:*sales' }]);
-  });
-
-  it('removeMart deletes by name', () => {
-    useAppStore.getState().setSelector('a');
-    useAppStore.getState().saveMart('A');
-    useAppStore.getState().removeMart('A');
-    expect(useAppStore.getState().savedMarts).toEqual([]);
   });
 
   it('loadDbmlSafe sets model and clears loadError on valid content', () => {

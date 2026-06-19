@@ -5,7 +5,7 @@ import { initStore } from '@/app/initStore';
 const dbml = readFileSync('src/model/__fixtures__/grouped.dbml', 'utf8');
 
 beforeEach(() => {
-  useAppStore.setState({ model: null, selector: '', selectedTable: null, savedMarts: [] });
+  useAppStore.setState({ model: null, selector: '', selectedTable: null });
 });
 
 describe('initStore', () => {
