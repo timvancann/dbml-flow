@@ -1,41 +1,99 @@
-# dbml-flow
+# DBML Flow
 
-A DBML schema visualizer built with Bun + Vite + React.
+A next-gen, **read-only** visualizer for the [DBML](https://dbml.dbdiagram.io/) standard,
+built for exploring large, generated data-warehouse schemas (e.g.
+[dbterd](https://github.com/datnguye/dbterd) output) with speed and clarity.
+
+The point isn't to draw every table at once — it's **fast, surgical navigation of huge
+foreign-key graphs**: "what tables and relationships make up this data mart, and how are
+they connected?"
+
+## Features
+
+- **Schema overview** — a model opens as group super-nodes (with table/ref counts), not a
+  hairball. Click a group to drill into its tables.
+- **Selector DSL** — the canvas only ever renders a selected subgraph, driven by one
+  dbt-style selector string (shareable via URL, savable as a "data mart"):
+
+  | Syntax | Meaning |
+  |---|---|
+  | `d_customer` | one table (full name or last-segment) |
+  | `a b` | union (whitespace) |
+  | `a,b` | intersection (no spaces) |
+  | `!x` / `--exclude x` | exclude |
+  | `~a` / `~2a` | undirected neighbors within 1 / 2 hops |
+  | `+a` / `a+` | directional: toward-facts / toward-dimensions |
+  | `group:sales` / `g:sales_*` | a group / group glob |
+  | `*order*` | table-name glob |
+  | `path:a>b` | shortest FK path between two tables |
+
+- **Click-to-focus + hop stepper** — click any table to see it plus its in/out neighbors;
+  step the hop distance up/down live.
+- **Path finding** — "Find path", pick two tables, and the shortest reference path renders.
+- **Inspector** — the selected table's columns and foreign keys in collapsible lists;
+  click a ref to extend the selection.
+- **Fact/dimension coding** — facts amber, dimensions cyan, FK ports and PK badges, with an
+  elk crossing-minimized layout.
+- **Bring your own schema** — upload a `.dbml` file in-app, or bake one into the Docker
+  image (below). State (selector, saved marts) persists in the URL and `localStorage`.
+
+The bundled demo data is a small synthetic `shop` schema. No real data ships in the repo.
+
+## Quick start
+
+Uses [Bun](https://bun.sh) and (optionally) [`just`](https://github.com/casey/just).
+
+```bash
+bun install
+just dev          # or: bun run dev   → http://localhost:5173
+```
+
+## Tasks (`just`)
+
+```bash
+just dev                          # boot the Vite dev server
+just build                        # build the Docker image (no baked schema)
+just build path/to/schema.dbml    # build and bake a schema that auto-loads on startup
+just run                          # build, then run the container on :8080
+just run path/to/schema.dbml      # build with that schema baked in, then run
+```
 
 ## Run with Docker
 
-**Build the image:**
 ```bash
+just run                 # → http://localhost:8080  (built-in sample)
+# or manually:
 docker build -t dbml-flow .
-```
-
-**Run the container:**
-```bash
 docker run -p 8080:80 dbml-flow
 ```
 
-Then open [http://localhost:8080](http://localhost:8080). The app loads with a built-in synthetic sample schema.
+### Bake a default schema (optional)
 
-**Bake a default schema (optional):**
-
-To auto-load your own schema on startup, place a `.dbml` file at `docker/baked/default.dbml` before building:
+To auto-load your own schema on startup, pass it to `just build`/`just run`:
 
 ```bash
-cp your-schema.dbml docker/baked/default.dbml
-docker build -t dbml-flow .
+just run output.grouped.dbml
 ```
 
-The baked file is the **last image layer**, so swapping it only rebuilds that one layer — install and build steps stay cached. Remove `docker/baked/default.dbml` to revert to the synthetic sample.
+Under the hood this stages the file and builds with a `BAKED_DBML` build arg:
+
+```bash
+docker build --build-arg BAKED_DBML=docker/baked/default.dbml -t dbml-flow .
+```
+
+The baked file is the **absolute last image layer**, so swapping schemas only rebuilds that
+one layer — `bun install` and the Vite build stay cached. With no baked file, the app serves
+the synthetic sample (the served `/dbml/default.dbml` simply 404s and the app falls back).
+
+## Tech stack
+
+Bun + Vite + React + TypeScript · [`@xyflow/react`](https://reactflow.dev) + elkjs (canvas
+& layout) · Zustand (state) · [`@dbml/core`](https://www.npmjs.com/package/@dbml/core)
+(parsing) · Tailwind + shadcn/ui · Vitest + Playwright (tests) · nginx (container).
 
 ## Development
 
 ```bash
-bun install
-bun run dev
-```
-
-## Build
-
-```bash
-bun run build
+bun run test      # unit tests (Vitest)
+bun run build     # type-check (tsc) + production build (Vite)
 ```
