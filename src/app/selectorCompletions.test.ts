@@ -34,4 +34,22 @@ describe('selectorCompletions', () => {
     expect(r.from).toBe('group:sales '.length);
     expect(r.options.map((o) => o.label)).toContain('d_customer');
   });
+  it('matches substrings inside table names (no prefix needed)', () => {
+    expect(labels('order')).toContain('f_order');
+    expect(labels('house')).toContain('d_warehouse');
+    expect(labels('product')).toContain('d_product');
+  });
+  it('matches substrings case-insensitively and preserves operators', () => {
+    expect(labels('ORDER')).toContain('f_order');
+    expect(labels('~order')).toContain('~f_order');
+  });
+  it('matches substrings inside group names', () => {
+    // synthetic groups: shop.sales / shop.inventory / shop.people
+    expect(labels('group:vent')).toContain('inventory');
+  });
+  it('ranks a prefix match before a substring-only match', () => {
+    // 'd_p' is a prefix of d_product and not a substring of any other table
+    const opts = labels('d_p');
+    expect(opts[0]).toBe('d_product');
+  });
 });

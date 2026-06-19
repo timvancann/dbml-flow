@@ -19,6 +19,22 @@ function sorted(segs: string[]): string[] {
   return [...new Set(segs)].sort();
 }
 
+// Case-insensitive substring match ("not totally fuzzy"): keep segments that
+// CONTAIN the query, with prefix matches ranked first. `segs` must be sorted so
+// alphabetical order is preserved within each rank.
+function matchSegs(segs: string[], query: string): string[] {
+  if (!query) return segs;
+  const q = query.toLowerCase();
+  const starts: string[] = [];
+  const contains: string[] = [];
+  for (const s of segs) {
+    const i = s.toLowerCase().indexOf(q);
+    if (i === 0) starts.push(s);
+    else if (i > 0) contains.push(s);
+  }
+  return [...starts, ...contains];
+}
+
 export function selectorCompletions(model: Model, textBefore: string): SelectorCompletion {
   const lastWs = Math.max(
     textBefore.lastIndexOf(' '),
@@ -36,8 +52,7 @@ export function selectorCompletions(model: Model, textBefore: string): SelectorC
   if (token.startsWith('group:')) {
     const rest = token.slice(6);
     const from = tokenStart + 6;
-    const options = groupSegs
-      .filter((s) => s.startsWith(rest))
+    const options = matchSegs(groupSegs, rest)
       .slice(0, 50)
       .map((label) => ({ label, type: 'group' }));
     return { from, options };
@@ -46,8 +61,7 @@ export function selectorCompletions(model: Model, textBefore: string): SelectorC
   if (token.startsWith('g:')) {
     const rest = token.slice(2);
     const from = tokenStart + 2;
-    const options = groupSegs
-      .filter((s) => s.startsWith(rest))
+    const options = matchSegs(groupSegs, rest)
       .slice(0, 50)
       .map((label) => ({ label, type: 'group' }));
     return { from, options };
@@ -60,15 +74,13 @@ export function selectorCompletions(model: Model, textBefore: string): SelectorC
       const a = body.slice(0, gtIdx);
       const b = body.slice(gtIdx + 1);
       const from = tokenStart + 5 + a.length + 1;
-      const options = tableSegs
-        .filter((s) => s.startsWith(b))
+      const options = matchSegs(tableSegs, b)
         .slice(0, 50)
         .map((label) => ({ label, type: 'table' }));
       return { from, options };
     } else {
       const from = tokenStart + 5;
-      const options = tableSegs
-        .filter((s) => s.startsWith(body))
+      const options = matchSegs(tableSegs, body)
         .slice(0, 50)
         .map((label) => ({ label, type: 'table' }));
       return { from, options };
@@ -85,8 +97,7 @@ export function selectorCompletions(model: Model, textBefore: string): SelectorC
     .filter((kw) => kw.startsWith(token))
     .map((label) => ({ label, type: 'keyword' }));
 
-  const tableOptions: SelectorOption[] = tableSegs
-    .filter((seg) => seg.startsWith(bare))
+  const tableOptions: SelectorOption[] = matchSegs(tableSegs, bare)
     .map((seg) => ({ label: token.slice(0, prefixLen) + seg, type: 'table' }));
 
   const options = [...kwOptions, ...tableOptions].slice(0, 50);

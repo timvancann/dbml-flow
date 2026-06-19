@@ -54,6 +54,9 @@ function buildEditor(
     if (!r.options.length) return null;
     return {
       from: r.from,
+      // We already substring-filter (and rank) in selectorCompletions; tell CM not
+      // to re-filter, so non-prefix substring matches aren't dropped.
+      filter: false,
       options: r.options.map((o) => ({ label: o.label, type: o.type, detail: o.detail })),
     };
   };
