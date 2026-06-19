@@ -1,0 +1,327 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>DBML Flow — canvas design v1</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Familjen+Grotesk:wght@400;500;600;700&family=Instrument+Serif:ital@0;1&family=Spline+Sans+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --bg: #0a0c12;
+    --bg-2: #0d1018;
+    --panel: #11151f;
+    --panel-2: #141926;
+    --line: #1e2636;
+    --line-2: #2a3346;
+    --line-soft: rgba(120,140,180,.10);
+    --ink: #e6ebf5;
+    --ink-2: #9aa6bd;
+    --ink-3: #5e6a83;
+    --fact: #f0a868;        /* amber — fact tables */
+    --fact-dim: rgba(240,168,104,.14);
+    --dim: #5fd3c4;         /* cyan/teal — dimension tables */
+    --dim-dim: rgba(95,211,196,.13);
+    --pk: #e9c46a;          /* gold — primary key */
+    --edge: #6f7da0;
+    --accent: #8b9cff;
+    --grid: rgba(125,145,190,.045);
+    --radius: 13px;
+    font-synthesis: none;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body {
+    background:
+      radial-gradient(1100px 700px at 72% -10%, rgba(120,150,255,.10), transparent 60%),
+      radial-gradient(900px 600px at 8% 110%, rgba(95,211,196,.06), transparent 55%),
+      var(--bg);
+    color: var(--ink);
+    font-family: "Familjen Grotesk", system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    overflow: hidden;
+  }
+  /* grain */
+  body::after {
+    content: ""; position: fixed; inset: 0; pointer-events: none; z-index: 50; opacity: .035;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+
+  .app { display: grid; grid-template-columns: 264px 1fr 290px; grid-template-rows: 52px 1fr; height: 100vh; }
+
+  /* ---- top selection bar ---- */
+  .topbar {
+    grid-column: 1 / -1; display: flex; align-items: center; gap: 14px;
+    padding: 0 16px; border-bottom: 1px solid var(--line);
+    background: linear-gradient(180deg, var(--panel-2), var(--panel));
+  }
+  .brand { display: flex; align-items: baseline; gap: 9px; padding-right: 14px; border-right: 1px solid var(--line); }
+  .brand .mark { font-family: "Instrument Serif", serif; font-size: 22px; letter-spacing: .3px; color: var(--ink); }
+  .brand .mark em { color: var(--dim); font-style: italic; }
+  .brand .tag { font-size: 10px; letter-spacing: .22em; text-transform: uppercase; color: var(--ink-3); }
+
+  .selector {
+    flex: 1; display: flex; align-items: center; gap: 8px; height: 32px; padding: 0 10px;
+    background: var(--bg-2); border: 1px solid var(--line); border-radius: 9px;
+  }
+  .chip {
+    display: inline-flex; align-items: center; gap: 6px; height: 22px; padding: 0 8px 0 7px;
+    border-radius: 6px; font-size: 12.5px; font-weight: 500; white-space: nowrap;
+    border: 1px solid var(--line-2);
+  }
+  .chip.fact { color: var(--fact); background: var(--fact-dim); border-color: rgba(240,168,104,.3); }
+  .chip.op   { color: var(--accent); background: rgba(139,156,255,.12); border-color: rgba(139,156,255,.3); font-family: "Spline Sans Mono", monospace; }
+  .chip.grp  { color: var(--dim); background: var(--dim-dim); border-color: rgba(95,211,196,.3); }
+  .chip .x { color: var(--ink-3); font-size: 13px; }
+  .selector .dsl { margin-left: auto; font-family: "Spline Sans Mono", monospace; font-size: 12px; color: var(--ink-3); }
+  .selector .dsl b { color: var(--ink-2); font-weight: 500; }
+  .topbar .save { font-size: 12.5px; color: var(--ink-2); border: 1px solid var(--line-2); background: var(--panel-2); padding: 6px 11px; border-radius: 8px; }
+
+  /* ---- left rail ---- */
+  .rail { border-right: 1px solid var(--line); background: var(--panel); display: flex; flex-direction: column; min-height: 0; }
+  .rail .search { margin: 12px; height: 34px; border-radius: 9px; border: 1px solid var(--line); background: var(--bg-2);
+    display: flex; align-items: center; gap: 8px; padding: 0 10px; color: var(--ink-3); font-size: 13px; }
+  .rail .seg { display: flex; gap: 4px; margin: 0 12px 8px; }
+  .rail .seg span { font-size: 11px; color: var(--ink-3); padding: 3px 8px; border-radius: 6px; }
+  .rail .seg span.on { color: var(--ink); background: var(--panel-2); border: 1px solid var(--line); }
+  .rail .list { overflow: auto; padding: 4px 8px 14px; min-height: 0; }
+  .grouphdr { display: flex; align-items: center; gap: 8px; padding: 9px 8px 5px; font-size: 11px; letter-spacing: .04em;
+    text-transform: uppercase; color: var(--ink-3); }
+  .grouphdr .dot { width: 7px; height: 7px; border-radius: 2px; }
+  .grouphdr .cnt { margin-left: auto; font-family: "Spline Sans Mono", monospace; font-size: 10.5px; color: var(--ink-3); }
+  .titem { display: flex; align-items: center; gap: 9px; padding: 6px 8px; border-radius: 7px; font-family: "Spline Sans Mono", monospace;
+    font-size: 12.5px; color: var(--ink-2); }
+  .titem:hover { background: var(--panel-2); color: var(--ink); }
+  .titem.sel { background: rgba(139,156,255,.10); color: var(--ink); }
+  .titem .g { width: 15px; height: 15px; border-radius: 4px; display: grid; place-items: center; font-size: 9px; font-weight: 700; flex: none; }
+  .g.f { color: var(--fact); background: var(--fact-dim); }
+  .g.d { color: var(--dim); background: var(--dim-dim); }
+
+  /* ---- canvas ---- */
+  .canvas { position: relative; overflow: hidden;
+    background:
+      linear-gradient(var(--grid) 1px, transparent 1px) 0 0 / 28px 28px,
+      linear-gradient(90deg, var(--grid) 1px, transparent 1px) 0 0 / 28px 28px,
+      radial-gradient(1200px 800px at 60% 40%, rgba(20,28,46,.55), transparent 70%),
+      var(--bg);
+  }
+  .canvas .vignette { position:absolute; inset:0; box-shadow: inset 0 0 200px 40px rgba(0,0,0,.55); pointer-events:none; }
+  .canvas .hud { position: absolute; left: 16px; top: 14px; display: flex; gap: 8px; align-items: center; z-index: 6; }
+  .hud .pill { font-family: "Spline Sans Mono", monospace; font-size: 11px; color: var(--ink-2); background: rgba(13,16,24,.7);
+    border: 1px solid var(--line); padding: 5px 9px; border-radius: 7px; backdrop-filter: blur(6px); }
+  .hud .pill b { color: var(--dim); font-weight: 600; }
+
+  /* edges */
+  svg.edges { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 1; pointer-events: none; }
+  .edge { fill: none; stroke: var(--edge); stroke-width: 1.4; opacity: .5; }
+  .edge.hot { stroke: url(#hot); stroke-width: 2; opacity: 1; filter: drop-shadow(0 0 6px rgba(240,168,104,.35)); }
+  .edot { fill: var(--fact); }
+
+  /* table node */
+  .node { position: absolute; width: 248px; z-index: 3; border-radius: var(--radius); background:
+      linear-gradient(180deg, var(--panel-2), var(--panel)); border: 1px solid var(--line-2);
+      box-shadow: 0 18px 40px -22px rgba(0,0,0,.9), 0 2px 0 rgba(255,255,255,.02) inset; }
+  .node.fact { border-top: 2px solid var(--fact); }
+  .node.dim  { border-top: 2px solid var(--dim); }
+  .node .nhead { display: flex; align-items: center; gap: 9px; padding: 10px 12px 9px; border-bottom: 1px solid var(--line); }
+  .node .nhead .gl { width: 19px; height: 19px; border-radius: 5px; display: grid; place-items: center; font-size: 10px; font-weight: 700; flex: none; }
+  .node.fact .gl { color: var(--fact); background: var(--fact-dim); }
+  .node.dim  .gl { color: var(--dim); background: var(--dim-dim); }
+  .node .nhead .nm { font-family: "Spline Sans Mono", monospace; font-size: 12.5px; font-weight: 600; color: var(--ink); letter-spacing: -.1px; }
+  .node .nhead .schema { font-size: 10px; color: var(--ink-3); }
+  .node .nhead .kind { margin-left: auto; font-size: 9.5px; letter-spacing: .14em; text-transform: uppercase; }
+  .node.fact .kind { color: var(--fact); } .node.dim .kind { color: var(--dim); }
+  .cols { padding: 5px; display: flex; flex-direction: column; }
+  .col { display: grid; grid-template-columns: 14px 1fr auto; align-items: center; gap: 8px; padding: 4px 8px; border-radius: 6px;
+    font-family: "Spline Sans Mono", monospace; font-size: 12px; position: relative; }
+  .col .cn { color: var(--ink-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .col .ct { color: var(--ink-3); font-size: 11px; }
+  .col .key { color: var(--pk); font-size: 11px; }
+  .col.pk .cn { color: var(--ink); }
+  .col.fk { background: rgba(240,168,104,.06); }
+  .col.fk .cn { color: var(--fact); }
+  .col.fk::before { content:""; position:absolute; left:0; top:5px; bottom:5px; width:2px; border-radius:2px; background: var(--fact); }
+  .port { width: 8px; height: 8px; border-radius: 50%; border: 2px solid var(--panel-2); position: absolute; }
+  .port.r { right: -5px; background: var(--fact); }
+  .port.l { left: -5px; background: var(--dim); }
+  .col .more { color: var(--ink-3); }
+  .nfoot { padding: 7px 12px; border-top: 1px solid var(--line); display:flex; gap:10px; font-size: 10.5px; color: var(--ink-3); font-family:"Spline Sans Mono",monospace;}
+
+  /* group super-node (overview inset) */
+  .overview { position:absolute; right: 22px; bottom: 20px; width: 250px; background: rgba(10,12,18,.72); border:1px solid var(--line);
+    border-radius: 12px; padding: 12px; z-index: 7; backdrop-filter: blur(8px); }
+  .overview .ohdr { font-size: 10px; letter-spacing:.16em; text-transform:uppercase; color: var(--ink-3); margin-bottom: 10px; display:flex; }
+  .overview .ohdr span { margin-left:auto; color: var(--dim); }
+  .gnodes { display:flex; flex-wrap:wrap; gap:7px; }
+  .gnode { font-size: 11px; color: var(--ink-2); border:1px solid var(--line-2); border-radius:8px; padding:6px 8px; display:flex; flex-direction:column; gap:3px; background: var(--panel); }
+  .gnode .gt { font-family:"Spline Sans Mono",monospace; font-size:10.5px; color: var(--ink); }
+  .gnode .gm { font-size:9.5px; color: var(--ink-3); }
+  .gnode.hl { border-color: rgba(95,211,196,.4); box-shadow: 0 0 0 1px rgba(95,211,196,.2); }
+
+  /* right inspector */
+  .inspector { border-left: 1px solid var(--line); background: var(--panel); padding: 16px; overflow:auto; }
+  .insp-eyebrow { font-size: 10px; letter-spacing:.18em; text-transform:uppercase; color: var(--ink-3); }
+  .insp-title { font-family:"Spline Sans Mono",monospace; font-size: 14px; color: var(--ink); margin: 7px 0 2px; }
+  .insp-sub { font-size: 11.5px; color: var(--ink-3); margin-bottom: 14px; }
+  .insp-row { display:flex; justify-content:space-between; padding: 8px 0; border-bottom: 1px solid var(--line); font-size: 12.5px; }
+  .insp-row .k { color: var(--ink-3); } .insp-row .v { color: var(--ink-2); font-family:"Spline Sans Mono",monospace; }
+  .reflist { margin-top: 14px; }
+  .reflist h4 { font-size: 10px; letter-spacing:.16em; text-transform:uppercase; color: var(--ink-3); margin: 0 0 8px; }
+  .refrow { display:flex; align-items:center; gap:8px; font-family:"Spline Sans Mono",monospace; font-size:12px; color: var(--ink-2);
+    padding:6px 8px; border-radius:7px; }
+  .refrow:hover { background: var(--panel-2); color: var(--ink); }
+  .refrow .arr { color: var(--fact); }
+</style>
+</head>
+<body>
+<div class="app">
+  <!-- top bar -->
+  <div class="topbar">
+    <div class="brand"><div class="mark">dbml&thinsp;<em>flow</em></div><div class="tag">viewer</div></div>
+    <div class="selector">
+      <span class="chip grp">group:sales</span>
+      <span class="chip fact">f_order<span class="x">×</span></span>
+      <span class="chip op">+</span>
+      <span class="dsl">selector&nbsp; <b>group:sales f_order+</b></span>
+    </div>
+    <div class="save">＋ Save data mart</div>
+  </div>
+
+  <!-- left rail -->
+  <div class="rail">
+    <div class="search">⌕&nbsp; Search 64 tables…</div>
+    <div class="seg"><span class="on">All</span><span>Facts 23</span><span>Dims 41</span><span>★ Marts</span></div>
+    <div class="list">
+      <div class="grouphdr"><span class="dot" style="background:var(--dim)"></span> sales <span class="cnt">4</span></div>
+      <div class="titem sel"><span class="g f">f</span>f_order</div>
+      <div class="titem"><span class="g f">f</span>f_shipment</div>
+      <div class="titem"><span class="g d">d</span>d_customer</div>
+      <div class="titem"><span class="g f">f</span>f_stock</div>
+      <div class="grouphdr"><span class="dot" style="background:var(--fact)"></span> sales <span class="cnt">4</span></div>
+      <div class="titem"><span class="g d">d</span>d_customer</div>
+      <div class="titem"><span class="g d">d</span>d_warehouse</div>
+      <div class="grouphdr"><span class="dot" style="background:var(--dim)"></span> inventory <span class="cnt">3</span></div>
+      <div class="titem"><span class="g d">d</span>d_product</div>
+      <div class="titem"><span class="g d">d</span>d_warehouse</div>
+    </div>
+  </div>
+
+  <!-- canvas -->
+  <div class="canvas">
+    <div class="vignette"></div>
+    <div class="hud">
+      <div class="pill"><b>5</b> tables · <b>4</b> refs visible</div>
+      <div class="pill">selection: <b>group + fact→dims</b></div>
+      <div class="pill">⌘K commands</div>
+    </div>
+
+    <svg class="edges">
+      <defs>
+        <linearGradient id="hot" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0" stop-color="#f0a868"/><stop offset="1" stop-color="#5fd3c4"/>
+        </linearGradient>
+      </defs>
+      <!-- fact (right ports) -> dims (left ports) -->
+      <path class="edge hot" d="M 366 250 C 470 250, 470 150, 560 150" />
+      <circle class="edot" cx="366" cy="250" r="3"/>
+      <path class="edge hot" d="M 366 276 C 470 276, 470 330, 560 330" />
+      <circle class="edot" cx="366" cy="276" r="3"/>
+      <path class="edge" d="M 366 302 C 460 302, 470 470, 560 470" />
+      <circle class="edot" cx="366" cy="302" r="3"/>
+    </svg>
+
+    <!-- FACT node -->
+    <div class="node fact" style="left:118px; top:178px;">
+      <div class="nhead">
+        <span class="gl">F</span>
+        <div><div class="nm">f_order</div><div class="schema">shop · sales</div></div>
+        <span class="kind">fact</span>
+      </div>
+      <div class="cols">
+        <div class="col fk"><span class="key">⌖</span><span class="cn">sk_customer</span><span class="ct">binary</span><span class="port r"></span></div>
+        <div class="col fk"><span class="key">⌖</span><span class="cn">sk_employee</span><span class="ct">binary</span><span class="port r"></span></div>
+        <div class="col fk"><span class="key">⌖</span><span class="cn">sk_product</span><span class="ct">binary</span><span class="port r"></span></div>
+        <div class="col"><span></span><span class="cn">order_number</span><span class="ct">text</span></div>
+        <div class="col"><span></span><span class="cn">order_status</span><span class="ct">text</span></div>
+        <div class="col"><span></span><span class="more">+ 4 more columns</span><span></span></div>
+      </div>
+      <div class="nfoot"><span>10 cols</span><span>3 fk</span><span>0 pk</span></div>
+    </div>
+
+    <!-- DIM node 1 -->
+    <div class="node dim" style="left:560px; top:96px;">
+      <div class="nhead">
+        <span class="gl">D</span>
+        <div><div class="nm">d_customer</div><div class="schema">shop · sales</div></div>
+        <span class="kind">dim</span>
+      </div>
+      <div class="cols">
+        <div class="col pk"><span class="key">⚷</span><span class="cn">sk_customer</span><span class="ct">binary</span><span class="port l"></span></div>
+        <div class="col"><span></span><span class="cn">customer_name</span><span class="ct">text</span></div>
+        <div class="col"><span></span><span class="cn">customer_city</span><span class="ct">text</span></div>
+        <div class="col"><span></span><span class="more">+ 14 more columns</span><span></span></div>
+      </div>
+      <div class="nfoot"><span>17 cols</span><span>1 pk</span></div>
+    </div>
+
+    <!-- DIM node 2 -->
+    <div class="node dim" style="left:560px; top:286px;">
+      <div class="nhead">
+        <span class="gl">D</span>
+        <div><div class="nm">d_employee</div><div class="schema">shop · people</div></div>
+        <span class="kind">dim</span>
+      </div>
+      <div class="cols">
+        <div class="col pk"><span class="key">⚷</span><span class="cn">sk_employee</span><span class="ct">binary</span><span class="port l"></span></div>
+        <div class="col"><span></span><span class="cn">employee_name</span><span class="ct">text</span></div>
+        <div class="col"><span></span><span class="more">+ 13 more columns</span><span></span></div>
+      </div>
+      <div class="nfoot"><span>16 cols</span><span>1 pk</span></div>
+    </div>
+
+    <!-- DIM node 3 (dimmed, 1 hop further) -->
+    <div class="node dim" style="left:560px; top:430px; opacity:.62;">
+      <div class="nhead">
+        <span class="gl">D</span>
+        <div><div class="nm">d_product</div><div class="schema">shop · inventory</div></div>
+        <span class="kind">dim</span>
+      </div>
+      <div class="cols">
+        <div class="col pk"><span class="key">⚷</span><span class="cn">sk_product</span><span class="ct">binary</span><span class="port l"></span></div>
+        <div class="col"><span></span><span class="cn">product_name</span><span class="ct">text</span></div>
+      </div>
+    </div>
+
+    <!-- overview inset -->
+    <div class="overview">
+      <div class="ohdr">Schema overview <span>10 groups</span></div>
+      <div class="gnodes">
+        <div class="gnode hl"><span class="gt">sales</span><span class="gm">4 tables · 9 refs</span></div>
+        <div class="gnode"><span class="gt">inventory</span><span class="gm">4 · 6</span></div>
+        <div class="gnode"><span class="gt">people</span><span class="gm">9 · 12</span></div>
+        <div class="gnode"><span class="gt">people</span><span class="gm">11 · 18</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- inspector -->
+  <div class="inspector">
+    <div class="insp-eyebrow">Fact table</div>
+    <div class="insp-title">f_order</div>
+    <div class="insp-sub">shop · sales</div>
+    <div class="insp-row"><span class="k">Columns</span><span class="v">10</span></div>
+    <div class="insp-row"><span class="k">Foreign keys</span><span class="v">3</span></div>
+    <div class="insp-row"><span class="k">Primary key</span><span class="v">—</span></div>
+    <div class="insp-row"><span class="k">In selection</span><span class="v" style="color:var(--dim)">yes</span></div>
+    <div class="reflist">
+      <h4>References (toward dims)</h4>
+      <div class="refrow"><span class="arr">→</span> d_customer<span style="margin-left:auto;color:var(--ink-3)">.sk_customer</span></div>
+      <div class="refrow"><span class="arr">→</span> d_employee</div>
+      <div class="refrow"><span class="arr">→</span> d_warehouse</div>
+      <div class="refrow"><span class="arr">→</span> d_product</div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

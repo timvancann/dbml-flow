@@ -1,0 +1,11 @@
+node_modules
+dist
+.DS_Store
+*.local
+coverage
+.superpowers/
+.playwright-mcp/
+*.png
+
+# Generated DBML output — never commit; regenerate locally
+output*.dbml

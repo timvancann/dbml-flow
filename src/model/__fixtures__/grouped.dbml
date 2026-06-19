@@ -1,0 +1,114 @@
+//Tables (based on the selection criteria)
+//--configured at schema: shop.sales
+Table "model.shop.f_order" {
+  "sk_customer" "integer"
+  "sk_product" "integer"
+  "sk_employee" "integer"
+  "order_number" "text"
+  "order_status" "text"
+  "order_date" "date"
+  "quantity" "integer"
+  "unit_price" "numeric"
+  "amount" "numeric"
+  "discount" "numeric"
+  "channel" "text"
+  "region" "text"
+
+  Note: ""
+}
+//--configured at schema: shop.sales
+Table "model.shop.f_shipment" {
+  "sk_customer" "integer"
+  "sk_product" "integer"
+  "shipment_number" "text"
+  "shipped_date" "date"
+  "carrier" "text"
+
+  Note: ""
+}
+//--configured at schema: shop.sales
+Table "model.shop.d_customer" {
+  "sk_customer" "integer"
+  "customer_name" "text"
+  "customer_city" "text"
+  "customer_segment" "text"
+
+  Note: ""
+  indexes {
+    (sk_customer) [pk]
+  }
+}
+//--configured at schema: shop.inventory
+Table "model.shop.d_product" {
+  "sk_product" "integer"
+  "product_name" "text"
+  "product_code" "text"
+  "category" "text"
+
+  Note: ""
+  indexes {
+    (sk_product) [pk]
+  }
+}
+//--configured at schema: shop.inventory
+Table "model.shop.f_stock" {
+  "sk_product" "integer"
+  "sk_warehouse" "integer"
+  "quantity_on_hand" "integer"
+  "reorder_level" "integer"
+
+  Note: ""
+}
+//--configured at schema: shop.inventory
+Table "model.shop.d_warehouse" {
+  "sk_warehouse" "integer"
+  "warehouse_name" "text"
+  "warehouse_region" "text"
+
+  Note: ""
+  indexes {
+    (sk_warehouse) [pk]
+  }
+}
+//--configured at schema: shop.people
+Table "model.shop.d_employee" {
+  "sk_employee" "integer"
+  "employee_name" "text"
+  "department" "text"
+  "hire_date" "date"
+
+  Note: ""
+}
+//--configured at schema: shop.people
+Table "model.shop.f_sales_rep" {
+  "sk_employee" "integer"
+  "sk_customer" "integer"
+  "target_amount" "numeric"
+
+  Note: ""
+}
+//Refs (based on the DBT Relationship Tests)
+Ref: "model.shop.f_order"."sk_customer" > "model.shop.d_customer"."sk_customer"
+Ref: "model.shop.f_order"."sk_product" > "model.shop.d_product"."sk_product"
+Ref: "model.shop.f_order"."sk_employee" > "model.shop.d_employee"."sk_employee"
+Ref: "model.shop.f_shipment"."sk_customer" > "model.shop.d_customer"."sk_customer"
+Ref: "model.shop.f_shipment"."sk_product" > "model.shop.d_product"."sk_product"
+Ref: "model.shop.f_stock"."sk_product" > "model.shop.d_product"."sk_product"
+Ref: "model.shop.f_stock"."sk_warehouse" > "model.shop.d_warehouse"."sk_warehouse"
+Ref: "model.shop.f_sales_rep"."sk_employee" > "model.shop.d_employee"."sk_employee"
+Ref: "model.shop.f_sales_rep"."sk_customer" > "model.shop.d_customer"."sk_customer"
+//TableGroups (based on the table schema)
+TableGroup "shop.sales" {
+  "model.shop.f_order"
+  "model.shop.f_shipment"
+  "model.shop.d_customer"
+}
+TableGroup "shop.inventory" {
+  "model.shop.d_product"
+  "model.shop.f_stock"
+  "model.shop.d_warehouse"
+}
+TableGroup "shop.people" {
+  "model.shop.d_employee"
+  "model.shop.f_sales_rep"
+}
