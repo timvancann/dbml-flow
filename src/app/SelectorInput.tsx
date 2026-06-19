@@ -1,16 +1,46 @@
 // src/app/SelectorInput.tsx
 import { useEffect, useRef } from 'react';
-import { EditorState } from '@codemirror/state';
-import { EditorView, keymap, placeholder as cmPlaceholder } from '@codemirror/view';
+import { EditorState, RangeSetBuilder } from '@codemirror/state';
+import { EditorView, keymap, placeholder as cmPlaceholder, ViewPlugin, Decoration } from '@codemirror/view';
+import type { DecorationSet, ViewUpdate } from '@codemirror/view';
 import {
   autocompletion,
   completionKeymap,
   acceptCompletion,
 } from '@codemirror/autocomplete';
 import type { CompletionContext } from '@codemirror/autocomplete';
+import { linter } from '@codemirror/lint';
 import { useAppStore } from '@/app/store';
 import { selectorCompletions } from '@/app/selectorCompletions';
+import { tokenizeSelector, validateSelector } from '@/app/selectorSyntax';
 import type { Model } from '@/model/types';
+
+function buildDecos(view: EditorView): DecorationSet {
+  const builder = new RangeSetBuilder<Decoration>();
+  const tokens = tokenizeSelector(view.state.doc.toString());
+  for (const tok of tokens) {
+    if (tok.kind !== 'whitespace') {
+      builder.add(tok.from, tok.to, Decoration.mark({ class: `cm-sel-${tok.kind}` }));
+    }
+  }
+  return builder.finish();
+}
+
+class SelectorHighlightPlugin {
+  decos: DecorationSet;
+  constructor(view: EditorView) {
+    this.decos = buildDecos(view);
+  }
+  update(u: ViewUpdate) {
+    if (u.docChanged) {
+      this.decos = buildDecos(u.view);
+    }
+  }
+}
+
+const highlightPlugin = ViewPlugin.fromClass(SelectorHighlightPlugin, {
+  decorations: (v) => v.decos,
+});
 
 function buildEditor(
   parent: HTMLDivElement,
@@ -83,6 +113,15 @@ function buildEditor(
     }
   });
 
+  const selectorLinter = linter((view) =>
+    validateSelector(model, view.state.doc.toString()).map((d) => ({
+      from: d.from,
+      to: d.to,
+      severity: d.severity,
+      message: d.message,
+    })),
+  );
+
   const state = EditorState.create({
     doc: initialValue,
     extensions: [
@@ -93,6 +132,8 @@ function buildEditor(
       autocompletion({ override: [completionSource], activateOnTyping: true }),
       cmPlaceholder('selector — e.g. group:sales f_order+ or path:a>b'),
       updateListener,
+      highlightPlugin,
+      selectorLinter,
     ],
   });
 

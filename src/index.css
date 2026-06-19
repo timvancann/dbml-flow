@@ -158,3 +158,11 @@ body {
 body {
   font-family: "Familjen Grotesk", system-ui, -apple-system, sans-serif;
 }
+
+/* Selector syntax highlighting token colors */
+.cm-sel-operator { color: var(--accent); }
+.cm-sel-keyword { color: var(--dim); }
+.cm-sel-number { color: var(--pk); }
+.cm-sel-glob { color: var(--fact); }
+.cm-sel-identifier { color: var(--ink); }
+.cm-sel-invalid { color: #ff6b6b; text-decoration: underline wavy #ff6b6b; }
