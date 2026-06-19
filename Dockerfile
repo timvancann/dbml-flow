@@ -12,6 +12,10 @@ RUN bun run build
 FROM nginx:alpine
 COPY docker/nginx.conf /etc/nginx/conf.d/default.conf
 COPY --from=build /app/dist /usr/share/nginx/html
-# ABSOLUTE LAST LAYER — optional baked DBML. Drop a file at docker/baked/default.dbml
-# to bake it in; swapping it only rebuilds this one layer.
-COPY docker/baked/ /usr/share/nginx/html/dbml/
+# ABSOLUTE LAST LAYER — optional baked DBML, selected by a build arg.
+# Default copies only docker/baked/.gitkeep (so /dbml/default.dbml is 404 → app uses the
+# built-in sample). `just build <file>` stages the file as docker/baked/default.dbml and
+# points BAKED_DBML at it, so it lands as /dbml/default.dbml and auto-loads on startup.
+# Because this is the final layer, swapping the baked file only rebuilds this one layer.
+ARG BAKED_DBML=docker/baked/.gitkeep
+COPY ${BAKED_DBML} /usr/share/nginx/html/dbml/

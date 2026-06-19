@@ -9,3 +9,6 @@ coverage
 
 # Generated DBML output — never commit; regenerate locally
 output*.dbml
+
+# staged baked schema (transient, may be real data)
+docker/baked/*.dbml
