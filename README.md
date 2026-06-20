@@ -107,3 +107,23 @@ Bun + Vite + React + TypeScript · [`@xyflow/react`](https://reactflow.dev) + el
 bun run test      # unit tests (Vitest)
 bun run build     # type-check (tsc) + production build (Vite)
 ```
+
+## Credits & inspiration
+
+DBML Flow stands on the shoulders of some great tools — its niche is the gap between
+them: **exploring** a generated schema, almost like a data catalog, but from a single
+static DBML file with no database connection and no backend.
+
+- **[Azimutt](https://azimutt.app/)** — the big inspiration for *don't draw the whole
+  schema; build focused views of large databases*. DBML Flow is the lightweight take:
+  DBML in, exploration out — no database connections, no accounts, no server.
+- **[dbterd](https://github.com/datnguye/dbterd)** — generates DBML straight from a dbt
+  catalog, which is what makes DBML Flow useful for analytics engineers in the first place.
+- **[dbdiagram](https://dbdiagram.io/), [dbdocs](https://dbdocs.io/),
+  [DrawSQL](https://drawsql.app/), [drawDB](https://drawdb.app/),
+  [ChartDB](https://chartdb.io/)** — excellent for *designing and generating* schemas.
+  DBML Flow deliberately goes the other way: you generate once, then explore.
+
+## License
+
+[MIT](LICENSE) © Tim van Cann
