@@ -18,8 +18,11 @@ they connected?"
 
 - **Schema overview** — a model opens as group super-nodes (with table/ref counts), not a
   hairball. Click a group to drill into its tables.
-- **Selector DSL** — the canvas only ever renders a selected subgraph, driven by one
-  dbt-style selector string (shareable via URL, savable as a "data mart"):
+- **Selector grammar** — the canvas only ever renders a selected subgraph, driven by one
+  dbt-style selector string (shareable via URL). It's a small, composable language for
+  **selecting** tables and groups, **hiding/excluding** the noise, **traversing**
+  relationships (directional or undirected, by hop distance), and **finding the route**
+  between two tables. Combine operators freely — union, intersect, exclude, expand:
 
   | Syntax | Meaning |
   |---|---|
@@ -41,7 +44,8 @@ they connected?"
 - **Fact/dimension coding** — facts amber, dimensions cyan, FK ports and PK badges, with an
   elk crossing-minimized layout.
 - **Bring your own schema** — upload a `.dbml` file in-app, or bake one into the Docker
-  image (below). State (selector, saved marts) persists in the URL and `localStorage`.
+  image (below). The current selector persists in the URL and `localStorage`, so a view is
+  just a link you can share.
 
 The bundled demo data is a small synthetic `shop` schema. No real data ships in the repo.
 
