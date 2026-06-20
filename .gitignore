@@ -6,6 +6,7 @@ coverage
 .superpowers/
 .playwright-mcp/
 *.png
+!docs/assets/*.png
 
 # Generated DBML output — never commit; regenerate locally
 output*.dbml

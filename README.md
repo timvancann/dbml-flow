@@ -1,4 +1,10 @@
-# DBML Flow
+<div align="center">
+
+![DBML Flow](docs/assets/wordmark.png)
+
+### [▶ Live demo](https://timvancann.github.io/dbml-flow/)
+
+</div>
 
 A next-gen, **read-only** visualizer for the [DBML](https://dbml.dbdiagram.io/) standard,
 built for exploring large, generated data-warehouse schemas (e.g.
