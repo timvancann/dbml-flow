@@ -70,6 +70,39 @@ just run path/to/schema.dbml      # build with that schema baked in, then run
 
 ## Run with Docker
 
+A prebuilt image is published to GitHub Container Registry, so you can run the app — and
+point it at your own schema — without cloning the repo or building anything.
+
+### Use the published image (no clone, no build)
+
+Mount your `.dbml` over the served path; it auto-loads on startup. Nothing is rebuilt — it's
+a plain `docker run`:
+
+```bash
+docker run -p 8080:80 \
+  -v "$(pwd)/your-schema.dbml:/usr/share/nginx/html/dbml/default.dbml:ro" \
+  ghcr.io/timvancann/dbml-flow:latest
+# → http://localhost:8080
+```
+
+With no mount, the image serves the built-in synthetic sample.
+
+### Extend the image (bake your schema into your own image)
+
+To ship an immutable image (e.g. for your own deploy), extend the published one with a
+one-line `Dockerfile` — a single `COPY` layer, no app rebuild:
+
+```dockerfile
+FROM ghcr.io/timvancann/dbml-flow:latest
+COPY your-schema.dbml /usr/share/nginx/html/dbml/default.dbml
+```
+
+```bash
+docker build -t my-dbml-flow . && docker run -p 8080:80 my-dbml-flow
+```
+
+### Build it yourself from source
+
 ```bash
 just run                 # → http://localhost:8080  (built-in sample)
 # or manually:
