@@ -36,12 +36,15 @@ function matchSegs(segs: string[], query: string): string[] {
 }
 
 export function selectorCompletions(model: Model, textBefore: string): SelectorCompletion {
-  const lastWs = Math.max(
+  // Whitespace separates tokens; commas separate atoms within a token (see
+  // parseSelector). Either boundary starts a fresh segment to complete.
+  const lastBoundary = Math.max(
     textBefore.lastIndexOf(' '),
     textBefore.lastIndexOf('\t'),
     textBefore.lastIndexOf('\n'),
+    textBefore.lastIndexOf(','),
   );
-  const tokenStart = lastWs === -1 ? 0 : lastWs + 1;
+  const tokenStart = lastBoundary === -1 ? 0 : lastBoundary + 1;
   const token = textBefore.slice(tokenStart);
 
   const tableSegs = sorted([...model.tables.keys()].map(lastSeg));

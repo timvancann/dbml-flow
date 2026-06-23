@@ -34,6 +34,11 @@ describe('selectorCompletions', () => {
     expect(r.from).toBe('group:sales '.length);
     expect(r.options.map((o) => o.label)).toContain('d_customer');
   });
+  it('completions are scoped to the atom after the last comma', () => {
+    const r = selectorCompletions(model, 'f_order,d_cust');
+    expect(r.from).toBe('f_order,'.length);
+    expect(r.options.map((o) => o.label)).toContain('d_customer');
+  });
   it('matches substrings inside table names (no prefix needed)', () => {
     expect(labels('order')).toContain('f_order');
     expect(labels('house')).toContain('d_warehouse');
