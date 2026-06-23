@@ -13,3 +13,6 @@ output*.dbml
 
 # staged baked schema (transient, may be real data)
 docker/baked/*.dbml
+
+# Local design spec — keep local, do not publish
+SPEC.md
