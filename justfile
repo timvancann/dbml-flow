@@ -14,22 +14,30 @@ default:
 dev:
     bun run dev
 
-# Build the Docker image. Optionally bake a DBML auto-loaded on startup:
-#   just build                       # no baked schema (app shows the sample)
-#   just build output.grouped.dbml   # bake this file in (last layer only rebuilds)
-build file="":
+# Build the Docker image. Optionally bake one or more DBML files:
+#   just build                              # no baked schema (app shows the sample)
+#   just build warehouse.dbml               # one db → auto-loads on startup
+#   just build warehouse.dbml pokemon.dbml  # 2+ dbs → app shows a chooser
+build *files:
     #!/usr/bin/env bash
     set -euo pipefail
-    if [ -n "{{file}}" ]; then
-        if [ ! -f "{{file}}" ]; then echo "no such file: {{file}}" >&2; exit 1; fi
-        echo "Baking {{file}} → /dbml/default.dbml (last image layer)…"
-        cp "{{file}}" docker/baked/default.dbml
-        trap 'rm -f docker/baked/default.dbml' EXIT
-        docker build --build-arg BAKED_DBML=docker/baked/default.dbml -t {{image}} .
-    else
+    if [ -z "{{files}}" ]; then
         docker build -t {{image}} .
+        exit 0
     fi
+    rm -f docker/baked/*.dbml docker/baked/manifest.json
+    trap 'rm -f docker/baked/*.dbml docker/baked/manifest.json' EXIT
+    entries=()
+    for f in {{files}}; do
+        if [ ! -f "$f" ]; then echo "no such file: $f" >&2; exit 1; fi
+        base="$(basename "$f")"
+        cp "$f" "docker/baked/$base"
+        entries+=("{\"file\":\"$base\"}")
+    done
+    printf '{"databases":[%s]}\n' "$(IFS=,; echo "${entries[*]}")" > docker/baked/manifest.json
+    echo "Baking ${#entries[@]} database(s) → /dbml/ (last image layer)…"
+    docker build -t {{image}} .
 
-# Build (optionally baking FILE), then run the container on :{{port}}
-run file="": (build file)
+# Build (optionally baking FILES), then run the container on :{{port}}
+run *files: (build files)
     docker run --rm -p {{port}}:80 {{image}}

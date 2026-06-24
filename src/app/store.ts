@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { loadModel } from '@/model/loadModel';
 import type { Model } from '@/model/types';
+import type { DbEntry } from '@/app/bakedManifest';
 
 export interface AppState {
   model: Model | null;
@@ -9,6 +10,8 @@ export interface AppState {
   pathMode: boolean;
   pathStart: string | null;
   loadError: string | null;
+  databases: DbEntry[] | null;
+  activeDb: string | null;
   setSelector: (s: string) => void;
   setSelectedTable: (t: string | null) => void;
   setModel: (m: Model) => void;
@@ -16,6 +19,8 @@ export interface AppState {
   loadDbmlSafe: (content: string) => void;
   setPathMode: (on: boolean) => void;
   pickPathTable: (name: string) => void;
+  setDatabases: (dbs: DbEntry[]) => void;
+  setActiveDatabase: (id: string | null) => void;
 }
 
 export const useAppStore = create<AppState>((set, get) => ({
@@ -25,6 +30,8 @@ export const useAppStore = create<AppState>((set, get) => ({
   pathMode: false,
   pathStart: null,
   loadError: null,
+  databases: null,
+  activeDb: null,
   setSelector: (selector) => set({ selector }),
   setSelectedTable: (selectedTable) => set({ selectedTable }),
   setModel: (model) => set({ model }),
@@ -37,6 +44,8 @@ export const useAppStore = create<AppState>((set, get) => ({
       set({ loadError: error?.message ?? String(error) });
     }
   },
+  setDatabases: (databases) => set({ databases }),
+  setActiveDatabase: (activeDb) => set({ activeDb }),
   setPathMode: (on) => set({ pathMode: on, pathStart: on ? get().pathStart : null }),
   pickPathTable: (name) => {
     const { pathStart } = get();

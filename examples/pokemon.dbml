@@ -1,0 +1,133 @@
+//Tables — a tiny Kanto warehouse for testing multi-database baking
+//--configured at schema: kanto.trainers
+Table "model.kanto.d_trainer" {
+  "sk_trainer" "integer"
+  "trainer_name" "text"
+  "hometown" "text"
+  "badge_count" "integer"
+
+  Note: "Trainers roaming the Kanto region"
+  indexes {
+    (sk_trainer) [pk]
+  }
+}
+//--configured at schema: kanto.pokedex
+Table "model.kanto.d_type" {
+  "sk_type" "integer"
+  "type_name" "text"
+
+  Note: "Elemental types (Fire, Water, Grass, …)"
+  indexes {
+    (sk_type) [pk]
+  }
+}
+//--configured at schema: kanto.pokedex
+Table "model.kanto.d_species" {
+  "sk_species" "integer"
+  "species_name" "text"
+  "sk_type_primary" "integer"
+  "sk_type_secondary" "integer"
+  "base_hp" "integer"
+
+  Note: "Pokédex species entries"
+  indexes {
+    (sk_species) [pk]
+  }
+}
+//--configured at schema: kanto.pokedex
+Table "model.kanto.d_move" {
+  "sk_move" "integer"
+  "move_name" "text"
+  "sk_type" "integer"
+  "power" "integer"
+
+  Note: "Moves a Pokémon can learn"
+  indexes {
+    (sk_move) [pk]
+  }
+}
+//--configured at schema: kanto.pokedex
+Table "model.kanto.d_pokemon" {
+  "sk_pokemon" "integer"
+  "nickname" "text"
+  "sk_species" "integer"
+  "sk_trainer" "integer"
+  "level" "integer"
+
+  Note: "Individual caught Pokémon"
+  indexes {
+    (sk_pokemon) [pk]
+  }
+}
+//--configured at schema: kanto.battles
+Table "model.kanto.d_gym" {
+  "sk_gym" "integer"
+  "gym_name" "text"
+  "town" "text"
+  "sk_leader" "integer"
+  "sk_type" "integer"
+
+  Note: "Kanto gyms and their leaders"
+  indexes {
+    (sk_gym) [pk]
+  }
+}
+//--configured at schema: kanto.pokedex
+Table "model.kanto.f_pokemon_move" {
+  "sk_pokemon" "integer"
+  "sk_move" "integer"
+
+  Note: "Bridge: which Pokémon knows which move"
+}
+//--configured at schema: kanto.battles
+Table "model.kanto.f_catch" {
+  "sk_catch" "integer"
+  "sk_trainer" "integer"
+  "sk_pokemon" "integer"
+  "location" "text"
+  "caught_date" "date"
+
+  Note: "A trainer catching a Pokémon"
+}
+//--configured at schema: kanto.battles
+Table "model.kanto.f_battle" {
+  "sk_battle" "integer"
+  "sk_trainer" "integer"
+  "sk_opponent" "integer"
+  "sk_gym" "integer"
+  "winner_trainer" "integer"
+  "battle_date" "date"
+
+  Note: "Battles, optionally at a gym"
+}
+//Refs (the relationship graph)
+Ref: "model.kanto.d_species"."sk_type_primary" > "model.kanto.d_type"."sk_type"
+Ref: "model.kanto.d_species"."sk_type_secondary" > "model.kanto.d_type"."sk_type"
+Ref: "model.kanto.d_move"."sk_type" > "model.kanto.d_type"."sk_type"
+Ref: "model.kanto.d_pokemon"."sk_species" > "model.kanto.d_species"."sk_species"
+Ref: "model.kanto.d_pokemon"."sk_trainer" > "model.kanto.d_trainer"."sk_trainer"
+Ref: "model.kanto.d_gym"."sk_leader" > "model.kanto.d_trainer"."sk_trainer"
+Ref: "model.kanto.d_gym"."sk_type" > "model.kanto.d_type"."sk_type"
+Ref: "model.kanto.f_pokemon_move"."sk_pokemon" > "model.kanto.d_pokemon"."sk_pokemon"
+Ref: "model.kanto.f_pokemon_move"."sk_move" > "model.kanto.d_move"."sk_move"
+Ref: "model.kanto.f_catch"."sk_trainer" > "model.kanto.d_trainer"."sk_trainer"
+Ref: "model.kanto.f_catch"."sk_pokemon" > "model.kanto.d_pokemon"."sk_pokemon"
+Ref: "model.kanto.f_battle"."sk_trainer" > "model.kanto.d_trainer"."sk_trainer"
+Ref: "model.kanto.f_battle"."sk_opponent" > "model.kanto.d_trainer"."sk_trainer"
+Ref: "model.kanto.f_battle"."sk_gym" > "model.kanto.d_gym"."sk_gym"
+//TableGroups
+TableGroup "kanto.trainers" {
+  "model.kanto.d_trainer"
+}
+TableGroup "kanto.pokedex" {
+  "model.kanto.d_pokemon"
+  "model.kanto.d_species"
+  "model.kanto.d_type"
+  "model.kanto.d_move"
+  "model.kanto.f_pokemon_move"
+}
+TableGroup "kanto.battles" {
+  "model.kanto.f_battle"
+  "model.kanto.f_catch"
+  "model.kanto.d_gym"
+}

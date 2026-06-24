@@ -4,7 +4,7 @@ import { useAppStore } from '@/app/store';
 const dbml = readFileSync('src/model/__fixtures__/grouped.dbml', 'utf8');
 
 beforeEach(() => {
-  useAppStore.setState({ model: null, selector: '', selectedTable: null, pathMode: false, pathStart: null, loadError: null });
+  useAppStore.setState({ model: null, selector: '', selectedTable: null, pathMode: false, pathStart: null, loadError: null, databases: null, activeDb: null });
 });
 
 describe('useAppStore', () => {
@@ -37,6 +37,23 @@ describe('useAppStore', () => {
     useAppStore.getState().loadDbmlSafe('Table { broken');
     expect(useAppStore.getState().loadError).toBeTruthy();
     expect(useAppStore.getState().model).toBe(prevModel);
+  });
+
+  it('records the baked databases and the active one', () => {
+    const dbs = [
+      { id: 'a', label: 'a', file: 'a.dbml' },
+      { id: 'b', label: 'b', file: 'b.dbml' },
+    ];
+    useAppStore.getState().setDatabases(dbs);
+    expect(useAppStore.getState().databases).toEqual(dbs);
+    useAppStore.getState().setActiveDatabase('b');
+    expect(useAppStore.getState().activeDb).toBe('b');
+  });
+
+  it('clearing the active database reopens the chooser', () => {
+    useAppStore.getState().setActiveDatabase('a');
+    useAppStore.getState().setActiveDatabase(null);
+    expect(useAppStore.getState().activeDb).toBeNull();
   });
 
   it('path mode: first pick sets start, second pick builds path selector', () => {
