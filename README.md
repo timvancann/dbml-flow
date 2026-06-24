@@ -43,9 +43,9 @@ they connected?"
   click a ref to extend the selection.
 - **Fact/dimension coding** — facts amber, dimensions cyan, FK ports and PK badges, with an
   elk crossing-minimized layout.
-- **Bring your own schema** — upload a `.dbml` file in-app, or bake one into the Docker
-  image (below). The current selector persists in the URL and `localStorage`, so a view is
-  just a link you can share.
+- **Bring your own schema** — upload a `.dbml` file in-app, or bake one or more into the
+  Docker image (below); with several baked, the app opens a picker to choose a database. The
+  current database and selector persist in the URL, so a view is just a link you can share.
 
 The bundled demo data is a small synthetic `shop` schema. No real data ships in the repo.
 
@@ -63,9 +63,10 @@ just dev          # or: bun run dev   → http://localhost:5173
 ```bash
 just dev                          # boot the Vite dev server
 just build                        # build the Docker image (no baked schema)
-just build path/to/schema.dbml    # build and bake a schema that auto-loads on startup
+just build schema.dbml            # bake one schema that auto-loads on startup
+just build a.dbml b.dbml          # bake several; the app shows a picker on startup
 just run                          # build, then run the container on :8080
-just run path/to/schema.dbml      # build with that schema baked in, then run
+just run schema.dbml              # build with that schema baked in, then run
 ```
 
 ## Run with Docker
@@ -110,7 +111,7 @@ docker build -t dbml-flow .
 docker run -p 8080:80 dbml-flow
 ```
 
-### Bake a default schema (optional)
+### Bake one or more schemas (optional)
 
 To auto-load your own schema on startup, pass it to `just build`/`just run`:
 
@@ -118,15 +119,21 @@ To auto-load your own schema on startup, pass it to `just build`/`just run`:
 just run output.grouped.dbml
 ```
 
-Under the hood this stages the file and builds with a `BAKED_DBML` build arg:
+Pass **several** files to ship more than one database in a single image. With 2+ baked,
+the app opens a picker so you choose which database to start on (and switch later); with
+exactly one, it loads straight in:
 
 ```bash
-docker build --build-arg BAKED_DBML=docker/baked/default.dbml -t dbml-flow .
+just run output.grouped.dbml examples/pokemon.dbml
 ```
 
-The baked file is the **absolute last image layer**, so swapping schemas only rebuilds that
-one layer — `bun install` and the Vite build stay cached. With no baked file, the app serves
-the synthetic sample (the served `/dbml/default.dbml` simply 404s and the app falls back).
+Under the hood this stages the files into `docker/baked/`, generates a `manifest.json`
+describing them, and copies that directory in as the **absolute last image layer** — so
+swapping schemas only rebuilds that one layer (`bun install` and the Vite build stay
+cached). With no baked file, there's no manifest, so the app serves the synthetic sample
+(the served `/dbml/manifest.json` simply 404s and the app falls back). The chosen database
+is encoded in the URL (`?db=…`) alongside the selector, so a shared link reopens the same
+database and view.
 
 ## Tech stack
 

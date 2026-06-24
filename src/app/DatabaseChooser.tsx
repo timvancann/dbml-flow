@@ -19,7 +19,7 @@ export function DatabaseChooser({ databases, onPick }: Props) {
               <button
                 type="button"
                 onClick={() => onPick(db)}
-                className="w-full text-left px-4 py-3 rounded-md border border-[var(--line)] bg-[var(--panel)] hover:bg-[var(--panel-2)] transition-colors"
+                className="w-full text-left px-4 py-3 rounded-md border border-[var(--line)] bg-[var(--panel)] hover:bg-[var(--panel-2)] transition-colors cursor-pointer"
               >
                 {db.label}
               </button>
