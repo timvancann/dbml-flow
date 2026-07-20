@@ -7,6 +7,9 @@ export const HEADER_H = 46;
 export const ROW_H = 26;
 export const FOOTER_H = 30;
 export const NODE_WIDTH = 248;
+export const COMPACT_H = 48;
+export const GROUP_W = 200;
+export const GROUP_H = 64;
 
 export interface FlowColumn {
   name: string;
@@ -28,11 +31,20 @@ export interface TableNodeData {
   pkCount: number;
 }
 
+export type CompactTableNodeData = Omit<TableNodeData, 'columns' | 'hiddenCount'>;
+
+export interface GroupNodeData {
+  name: string;
+  label: string;
+  tableCount: number;
+  refCount: number;
+}
+
 export interface FlowNode {
   id: string;
-  type: 'table';
+  type: 'table' | 'tableCompact' | 'group';
   position: { x: number; y: number };
-  data: TableNodeData;
+  data: TableNodeData | CompactTableNodeData | GroupNodeData;
   width: number;
   height: number;
 }
@@ -41,9 +53,9 @@ export interface FlowEdge {
   id: string;
   source: string;
   target: string;
-  sourceHandle: string;
-  targetHandle: string;
-  data: { fromColumn: string; toColumn: string };
+  sourceHandle?: string;
+  targetHandle?: string;
+  data: { count: number; fromColumn?: string; toColumn?: string };
 }
 
 export function estimateNodeSize(data: Pick<TableNodeData, 'columns' | 'hiddenCount'>): {
@@ -77,8 +89,14 @@ export function selectionToFlow(
     for (const col of ref.toColumns) refSet.add(col);
   }
 
+  const memberToGroup = new Map<string, string>();
+  for (const [groupName, members] of selection.superGroups) {
+    for (const m of members) memberToGroup.set(m, groupName);
+  }
+
   const nodes: FlowNode[] = [];
   for (const name of selection.nodes) {
+    if (memberToGroup.has(name)) continue;
     const table = model.tables.get(name);
     if (!table) continue;
     const fkSet = fkByTable.get(name) ?? new Set<string>();
@@ -113,21 +131,79 @@ export function selectionToFlow(
       fkCount: fkSet.size,
       pkCount: allColumns.filter((c) => c.isPrimaryKey).length,
     };
-    const size = estimateNodeSize(data);
-    nodes.push({ id: name, type: 'table', position: { x: 0, y: 0 }, data, ...size });
+    if (selection.collapsed.has(name)) {
+      const { columns: _columns, hiddenCount: _hiddenCount, ...compact } = data;
+      nodes.push({
+        id: name,
+        type: 'tableCompact',
+        position: { x: 0, y: 0 },
+        data: compact,
+        width: NODE_WIDTH,
+        height: COMPACT_H,
+      });
+    } else {
+      const size = estimateNodeSize(data);
+      nodes.push({ id: name, type: 'table', position: { x: 0, y: 0 }, data, ...size });
+    }
   }
 
-  const edges: FlowEdge[] = [];
-  for (const ref of selection.edges) {
-    edges.push({
-      id: ref.id,
-      source: ref.fromTable,
-      target: ref.toTable,
-      sourceHandle: ref.fromColumns[0],
-      targetHandle: ref.toColumns[0],
-      data: { fromColumn: ref.fromColumns[0], toColumn: ref.toColumns[0] },
+  for (const [groupName, members] of selection.superGroups) {
+    const memberSet = new Set(members);
+    const refCount = model.refs.filter(
+      (r) => memberSet.has(r.fromTable) && memberSet.has(r.toTable),
+    ).length;
+    nodes.push({
+      id: groupName,
+      type: 'group',
+      position: { x: 0, y: 0 },
+      width: GROUP_W,
+      height: GROUP_H,
+      data: {
+        name: groupName,
+        label: groupName.split('.').pop() ?? groupName,
+        tableCount: members.length,
+        refCount,
+      },
     });
   }
 
-  return { nodes, edges };
+  const anchor = (table: string): { node: string; column?: string } =>
+    memberToGroup.has(table) ? { node: memberToGroup.get(table)! } : { node: table };
+
+  const merged = new Map<string, FlowEdge>();
+  for (const ref of selection.edges) {
+    const src = anchor(ref.fromTable);
+    const tgt = anchor(ref.toTable);
+    if (src.node === tgt.node) continue; // intra-super-group
+
+    const srcFull = selection.full.has(ref.fromTable) && src.node === ref.fromTable;
+    const tgtFull = selection.full.has(ref.toTable) && tgt.node === ref.toTable;
+    const sourceHandle = srcFull ? ref.fromColumns[0] : undefined;
+    const targetHandle = tgtFull ? ref.toColumns[0] : undefined;
+
+    const bothGroups = memberToGroup.has(ref.fromTable) && memberToGroup.has(ref.toTable);
+    let source = src.node;
+    let target = tgt.node;
+    if (bothGroups) [source, target] = [source, target].sort();
+
+    const key = `${source}|${sourceHandle ?? ''}|${target}|${targetHandle ?? ''}`;
+    const existing = merged.get(key);
+    if (existing) {
+      existing.data.count += 1;
+      existing.id = bothGroups ? existing.id : `agg:${key}`;
+      delete existing.data.fromColumn;
+      delete existing.data.toColumn;
+    } else {
+      merged.set(key, {
+        id: bothGroups ? `${source}--${target}` : ref.id,
+        source,
+        target,
+        sourceHandle,
+        targetHandle,
+        data: { count: 1, fromColumn: ref.fromColumns[0], toColumn: ref.toColumns[0] },
+      });
+    }
+  }
+
+  return { nodes, edges: [...merged.values()] };
 }

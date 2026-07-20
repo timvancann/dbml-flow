@@ -1,7 +1,13 @@
 import { readFileSync } from 'node:fs';
 import { loadModel } from '@/model/loadModel';
 import { resolveSelection } from '@/selection/resolveSelection';
-import { selectionToFlow, estimateNodeSize, MAX_VISIBLE_COLUMNS } from '@/canvas/selectionToFlow';
+import {
+  selectionToFlow,
+  estimateNodeSize,
+  MAX_VISIBLE_COLUMNS,
+  COMPACT_H,
+  type CompactTableNodeData,
+} from '@/canvas/selectionToFlow';
 import type { Model } from '@/model/types';
 
 const model = loadModel(readFileSync('src/model/__fixtures__/grouped.dbml', 'utf8'));
@@ -137,7 +143,13 @@ describe('selectionToFlow', () => {
       ],
     };
 
-    const { nodes } = selectionToFlow(syntheticModel, { nodes: ['test_table'], edges: [] });
+    const { nodes } = selectionToFlow(syntheticModel, {
+      nodes: new Set(['test_table']),
+      edges: [],
+      full: new Set(['test_table']),
+      collapsed: new Set(),
+      superGroups: new Map(),
+    });
     const node = nodes[0];
 
     // All 9 FK columns should be visible (exceeds MAX_VISIBLE_COLUMNS).
@@ -154,5 +166,60 @@ describe('selectionToFlow', () => {
     ]);
     expect(node.data.hiddenCount).toBe(5); // plain_1..plain_5 are hidden
     expect(node.data.columns.length + node.data.hiddenCount).toBe(node.data.columnCount);
+  });
+});
+
+describe('mixed detail rendering', () => {
+  it('collapsed tables render as tableCompact with COMPACT_H', () => {
+    const sel = resolveSelection(model, '.d_customer');
+    const { nodes } = selectionToFlow(model, sel);
+    const n = nodes.find((x) => x.id === 'model.shop.d_customer')!;
+    expect(n.type).toBe('tableCompact');
+    expect(n.height).toBe(COMPACT_H);
+    expect((n.data as CompactTableNodeData).columnCount).toBeGreaterThan(0);
+  });
+
+  it('super-groups render as group nodes and intra-group refs are dropped', () => {
+    const sel = resolveSelection(model, '');
+    const { nodes, edges } = selectionToFlow(model, sel);
+    expect(nodes.every((n) => n.type === 'group')).toBe(true);
+    for (const e of edges) expect(e.source).not.toBe(e.target);
+  });
+
+  it('empty selector reproduces the old overview graph exactly', () => {
+    const sel = resolveSelection(model, '');
+    const { nodes, edges } = selectionToFlow(model, sel);
+    // group node per group, undirected merged edges with a--b ids and counts
+    expect(nodes.map((n) => n.id).sort()).toEqual([...model.groups.keys()].sort());
+    for (const e of edges) {
+      expect(e.id).toBe([e.source, e.target].sort().join('--'));
+      expect(e.data.count).toBeGreaterThan(0);
+    }
+  });
+
+  it('edges re-anchor onto super-group nodes and merge with counts', () => {
+    // f_stock (in shop.inventory) has refs into d_product and d_warehouse, both
+    // also members of shop.inventory; forcing f_stock collapsed while the rest
+    // of its group stays a super-node yields ONE table->group edge with count 2.
+    const sel = resolveSelection(model, '.g:* .model.shop.f_stock');
+    const { edges } = selectionToFlow(model, sel);
+    const out = edges.filter(
+      (e) => e.source === 'model.shop.f_stock' || e.target === 'model.shop.f_stock',
+    );
+    expect(out.length).toBe(1);
+    expect(out[0].data.count).toBe(2);
+    for (const e of out) {
+      expect(e.sourceHandle).toBeUndefined();
+      expect(e.targetHandle).toBeUndefined();
+    }
+  });
+
+  it('full-to-full edges keep column handles and are not merged', () => {
+    const sel = resolveSelection(model, 'g:*');
+    const { edges } = selectionToFlow(model, sel);
+    for (const e of edges) {
+      expect(e.sourceHandle).toBeDefined();
+      expect(e.data.count).toBe(1);
+    }
   });
 });

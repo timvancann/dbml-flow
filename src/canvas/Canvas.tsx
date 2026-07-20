@@ -5,7 +5,6 @@ import { buildAdjacency } from '@/model/graph';
 import type { Model } from '@/model/types';
 import { resolveSelection } from '@/selection/resolveSelection';
 import { selectionToFlow, type FlowNode } from '@/canvas/selectionToFlow';
-import { buildOverview } from '@/canvas/buildOverview';
 import { layoutGraph } from '@/canvas/layout';
 import { TableNode } from '@/canvas/TableNode';
 import { GroupNode } from '@/canvas/GroupNode';
@@ -36,11 +35,8 @@ export function Canvas({
 
   useEffect(() => {
     let cancelled = false;
-    const trimmed = selector.trim();
 
-    const raw = trimmed
-      ? selectionToFlow(model, resolveSelection(model, trimmed, adjacency))
-      : buildOverview(model);
+    const raw = selectionToFlow(model, resolveSelection(model, selector, adjacency));
 
     layoutGraph(raw.nodes as FlowNode[], raw.edges as never).then((laid) => {
       if (cancelled) return;
@@ -48,8 +44,8 @@ export function Canvas({
       setEdges(
         raw.edges.map((e) => ({
           id: e.id, source: e.source, target: e.target,
-          sourceHandle: 'sourceHandle' in e ? e.sourceHandle : undefined,
-          targetHandle: 'targetHandle' in e ? e.targetHandle : undefined,
+          sourceHandle: e.sourceHandle,
+          targetHandle: e.targetHandle,
           style: { stroke: 'var(--edge)', strokeWidth: 1.4, opacity: 0.5 },
         })) as Edge[],
       );

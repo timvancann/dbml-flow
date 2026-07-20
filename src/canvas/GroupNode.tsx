@@ -1,6 +1,6 @@
 // src/canvas/GroupNode.tsx
 import { Handle, Position, type NodeProps } from '@xyflow/react';
-import type { GroupNodeData } from '@/canvas/buildOverview';
+import type { GroupNodeData } from '@/canvas/selectionToFlow';
 
 export function GroupNode({ data }: NodeProps & { data: GroupNodeData }) {
   return (
