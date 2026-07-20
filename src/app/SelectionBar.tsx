@@ -1,13 +1,36 @@
 // src/app/SelectionBar.tsx
+import { useEffect, useRef, useState } from 'react';
 import { useAppStore } from '@/app/store';
 import { LoadButton } from '@/app/LoadButton';
 import { SelectorInput } from '@/app/SelectorInput';
 import { HelpModal } from '@/app/HelpModal';
+import { loadHistory, pushHistory } from '@/app/selectorHistory';
 
 export function SelectionBar() {
   const pathMode = useAppStore((s) => s.pathMode);
   const setPathMode = useAppStore((s) => s.setPathMode);
   const loadError = useAppStore((s) => s.loadError);
+  const selector = useAppStore((s) => s.selector);
+  const setSelector = useAppStore((s) => s.setSelector);
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const historyRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!selector.trim()) return;
+    const t = setTimeout(() => pushHistory(selector), 3000);
+    return () => clearTimeout(t);
+  }, [selector]);
+
+  useEffect(() => {
+    if (!historyOpen) return;
+    const onClick = (e: MouseEvent) => {
+      if (historyRef.current && !historyRef.current.contains(e.target as Node)) {
+        setHistoryOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', onClick);
+    return () => document.removeEventListener('mousedown', onClick);
+  }, [historyOpen]);
 
   return (
     <div className="flex items-center gap-3 w-full">
@@ -22,6 +45,84 @@ export function SelectionBar() {
       {/* Selector area */}
       <div className="flex-1 flex items-center h-8 px-2.5 rounded-[9px] border border-[var(--line)] bg-[var(--bg-2)]">
         <SelectorInput />
+      </div>
+
+      {/* Recent selector history */}
+      <div ref={historyRef} style={{ position: 'relative', flexShrink: 0 }}>
+        <button
+          onClick={() => setHistoryOpen((v) => !v)}
+          title="Recently used selectors"
+          style={{
+            fontFamily: '"Spline Sans Mono", monospace',
+            fontSize: 12,
+            color: 'var(--ink-2)',
+            background: 'var(--panel-2)',
+            border: '1px solid var(--line-2)',
+            padding: '0 10px',
+            height: 28,
+            borderRadius: 8,
+            cursor: 'pointer',
+            whiteSpace: 'nowrap',
+            flexShrink: 0,
+          }}
+        >
+          Recent
+        </button>
+        {historyOpen && (
+          <div
+            style={{
+              position: 'absolute',
+              top: 32,
+              left: 0,
+              minWidth: 220,
+              maxWidth: 320,
+              maxHeight: 280,
+              overflowY: 'auto',
+              background: 'var(--bg-2)',
+              border: '1px solid var(--line)',
+              borderRadius: 8,
+              padding: 4,
+              zIndex: 20,
+            }}
+          >
+            {loadHistory().length === 0 ? (
+              <div
+                style={{
+                  fontFamily: '"Spline Sans Mono", monospace',
+                  fontSize: 12,
+                  color: 'var(--ink-3)',
+                  padding: '4px 8px',
+                }}
+              >
+                No recent selectors
+              </div>
+            ) : (
+              loadHistory().map((entry) => (
+                <div
+                  key={entry}
+                  onClick={() => {
+                    setSelector(entry);
+                    setHistoryOpen(false);
+                  }}
+                  style={{
+                    fontFamily: '"Spline Sans Mono", monospace',
+                    fontSize: 12,
+                    color: 'var(--ink-2)',
+                    padding: '4px 8px',
+                    borderRadius: 6,
+                    cursor: 'pointer',
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                  }}
+                  title={entry}
+                >
+                  {entry}
+                </div>
+              ))
+            )}
+          </div>
+        )}
       </div>
 
       {/* Find path toggle */}
