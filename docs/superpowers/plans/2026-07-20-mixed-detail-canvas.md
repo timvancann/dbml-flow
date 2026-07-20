@@ -1534,3 +1534,31 @@ git commit -m "docs: document '.' collapse modifier and new canvas features"
 - [ ] Step 1: Write `.cz.toml`, `.pre-commit-config.yaml`, `commit-lint.yml`, `release.yml`; adjust `docker.yml` comment.
 - [ ] Step 2: Validate YAML locally; run `pre-commit run --all-files` if available.
 - [ ] Step 3: Commit with a conventional message: `ci: conventional-commit release automation (auto tag bump, semver docker images)`.
+
+---
+
+### Task 14: Path-picking UX — start-table feedback (added post-planning at user request)
+
+**Files:**
+- Modify: `src/app/LeftRail.tsx`, `src/canvas/Canvas.tsx`
+- Test: none mandated (pure render); full suite + visual check
+
+**Context:** "Find path" mode (store: `pathMode`, `pathStart`, `pickPathTable`) currently gives no feedback about which start table was picked: the HUD pill only flips from "Pick start table" to "Pick target table". Requirements:
+1. In `LeftRail.tsx`, when `pathMode` is on and `pathStart` matches a listed table (compare full name; the rail lists tables — read the file to see its row structure), render a small "start" badge on that row, styled like existing rail badges (CSS vars, Spline Sans Mono, accent color `var(--accent)`).
+2. In `Canvas.tsx`, the existing path-mode HUD pill must include the picked start's last segment: when `pathStart` is set render `start: <seg>, pick target table`, else keep `Pick start table`. No em-dashes.
+
+- [ ] Step 1: Read both files, implement the two changes following their existing patterns.
+- [ ] Step 2: `bunx vitest run` + `bunx tsc --noEmit -p tsconfig.app.json` clean; visual check in the dev server (enter path mode, click a table, see rail badge + HUD text).
+- [ ] Step 3: Commit `feat: show picked start table in rail and canvas HUD during path mode`.
+
+### Task 15: Selector clear button (added post-planning at user request)
+
+**Files:**
+- Modify: `src/app/SelectionBar.tsx`
+- Test: none mandated (pure render); full suite + visual check
+
+**Context:** Add a small (x) button inside the selector area (the rounded box wrapping `<SelectorInput />`), right-aligned, that immediately calls `setSelector('')` on click. The SelectorInput two-way sync already clears the editor when the store selector changes. Requirements: render the button only when the selector is non-empty; unobtrusive styling (`var(--ink-3)` glyph, hover to `var(--ink-2)`, no border/background, cursor pointer, flexShrink 0); title "Clear selector"; the glyph is a plain multiplication sign or 'x' character, no emoji. Clearing returns the canvas to the overview (empty selector = `.g:*` default).
+
+- [ ] Step 1: Implement in SelectionBar.tsx.
+- [ ] Step 2: `bunx vitest run` + `bunx tsc --noEmit -p tsconfig.app.json` clean; visual check (type selector, click x, editor empties, overview returns).
+- [ ] Step 3: Commit `feat: clear button on the selector input`.
