@@ -88,6 +88,7 @@ export function Canvas({
       a.download = 'dbml-flow.png';
       a.href = dataUrl;
       a.click();
+      setPngExportState('idle');
     } catch (err) {
       console.error('PNG export failed', err);
       setPngExportState('error');
