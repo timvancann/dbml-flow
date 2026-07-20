@@ -13,7 +13,7 @@ import { GroupNode } from '@/canvas/GroupNode';
 import { RefEdge } from '@/canvas/RefEdge';
 import { HopStepper } from '@/app/HopStepper';
 import { useAppStore } from '@/app/store';
-import { expandGroup, collapseGroup, expandedGroupTokens } from '@/app/selectorEdit';
+import { expandGroup, collapseGroup, expandedGroupTokens, collapseAll, expandAll } from '@/app/selectorEdit';
 import { selectionToDbml } from '@/app/exportDbml';
 
 const hudButtonStyle: CSSProperties = {
@@ -204,6 +204,12 @@ export function Canvas({
           zIndex: 6,
         }}
       >
+        <button onClick={() => onSelectorChange?.(collapseAll(selector))} style={hudButtonStyle}>
+          Collapse all
+        </button>
+        <button onClick={() => onSelectorChange?.(expandAll(selector))} style={hudButtonStyle}>
+          Expand all
+        </button>
         <button onClick={copyDbml} style={hudButtonStyle}>
           {copyState === 'success' ? 'Copied' : copyState === 'error' ? 'Copy failed' : 'Copy DBML'}
         </button>
