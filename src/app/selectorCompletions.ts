@@ -47,42 +47,49 @@ export function selectorCompletions(model: Model, textBefore: string): SelectorC
   const tokenStart = lastBoundary === -1 ? 0 : lastBoundary + 1;
   const token = textBefore.slice(tokenStart);
 
+  let dotOffset = 0;
+  if (token.startsWith('.')) {
+    dotOffset = 1;
+  }
+  const inner = token.slice(dotOffset);
+  const innerStart = tokenStart + dotOffset;
+
   const tableSegs = sorted([...model.tables.keys()].map(lastSeg));
   const groupSegs = sorted([...model.groups.values()].map((g) => lastSeg(g.name)));
 
   const keywords = ['group:', 'g:', 'path:'];
 
-  if (token.startsWith('group:')) {
-    const rest = token.slice(6);
-    const from = tokenStart + 6;
+  if (inner.startsWith('group:')) {
+    const rest = inner.slice(6);
+    const from = innerStart + 6;
     const options = matchSegs(groupSegs, rest)
       .slice(0, 50)
       .map((label) => ({ label, type: 'group' }));
     return { from, options };
   }
 
-  if (token.startsWith('g:')) {
-    const rest = token.slice(2);
-    const from = tokenStart + 2;
+  if (inner.startsWith('g:')) {
+    const rest = inner.slice(2);
+    const from = innerStart + 2;
     const options = matchSegs(groupSegs, rest)
       .slice(0, 50)
       .map((label) => ({ label, type: 'group' }));
     return { from, options };
   }
 
-  if (token.startsWith('path:')) {
-    const body = token.slice(5);
+  if (inner.startsWith('path:')) {
+    const body = inner.slice(5);
     if (body.includes('>')) {
       const gtIdx = body.indexOf('>');
       const a = body.slice(0, gtIdx);
       const b = body.slice(gtIdx + 1);
-      const from = tokenStart + 5 + a.length + 1;
+      const from = innerStart + 5 + a.length + 1;
       const options = matchSegs(tableSegs, b)
         .slice(0, 50)
         .map((label) => ({ label, type: 'table' }));
       return { from, options };
     } else {
-      const from = tokenStart + 5;
+      const from = innerStart + 5;
       const options = matchSegs(tableSegs, body)
         .slice(0, 50)
         .map((label) => ({ label, type: 'table' }));
@@ -91,17 +98,17 @@ export function selectorCompletions(model: Model, textBefore: string): SelectorC
   }
 
   // plain token
-  const prefixMatch = token.match(/^[!~+0-9]*/);
+  const prefixMatch = inner.match(/^[!~+0-9]*/);
   const prefixLen = prefixMatch ? prefixMatch[0].length : 0;
-  const bare = token.slice(prefixLen);
-  const from = tokenStart;
+  const bare = inner.slice(prefixLen);
+  const from = innerStart;
 
   const kwOptions: SelectorOption[] = keywords
-    .filter((kw) => kw.startsWith(token))
+    .filter((kw) => kw.startsWith(inner))
     .map((label) => ({ label, type: 'keyword' }));
 
   const tableOptions: SelectorOption[] = matchSegs(tableSegs, bare)
-    .map((seg) => ({ label: token.slice(0, prefixLen) + seg, type: 'table' }));
+    .map((seg) => ({ label: inner.slice(0, prefixLen) + seg, type: 'table' }));
 
   const options = [...kwOptions, ...tableOptions].slice(0, 50);
   return { from, options };

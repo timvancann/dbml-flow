@@ -13,6 +13,7 @@ const SYNTAX_ROWS = [
   { syntax: 'group:sales  /  g:sales_*', desc: 'Select by group name or group glob' },
   { syntax: '*order*', desc: 'Table name glob (wildcard match)' },
   { syntax: 'path:a>b', desc: 'Shortest FK reference path between a and b' },
+  { syntax: '.x  /  .group:sales', desc: 'collapse: compact table card / group super-node' },
 ];
 
 const EXAMPLES = [
@@ -149,6 +150,7 @@ export function HelpModal() {
                 <li style={{ fontSize: 13, color: 'var(--ink-2)' }}>Click a table to focus it and its neighbors; use the hop stepper to widen.</li>
                 <li style={{ fontSize: 13, color: 'var(--ink-2)' }}>Click <span style={{ fontFamily: MONO, color: 'var(--accent)' }}>Find path</span>, then two tables, to highlight the shortest reference path.</li>
                 <li style={{ fontSize: 13, color: 'var(--ink-2)' }}>Type in the selector bar for autocomplete.</li>
+                <li style={{ fontSize: 13, color: 'var(--ink-2)' }}>An empty selector is shorthand for <span style={{ fontFamily: MONO, color: 'var(--accent)' }}>.g:*</span> (all groups collapsed).</li>
               </ul>
             </div>
 

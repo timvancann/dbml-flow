@@ -19,6 +19,13 @@ describe('tokenizeSelector', () => {
   it('flags invalid characters', () => {
     expect(kinds('-d_customer')).toContain('invalid');
   });
+  it('tokenizes a leading dot as an operator (no hang)', () => {
+    const toks = tokenizeSelector('.g:* .d_customer');
+    expect(toks.map((t) => [t.kind, t.text])).toEqual([
+      ['operator', '.'], ['keyword', 'g:'], ['glob', '*'], ['whitespace', ' '],
+      ['operator', '.'], ['identifier', 'd_customer'],
+    ]);
+  });
 });
 
 describe('validateSelector', () => {
@@ -41,5 +48,8 @@ describe('validateSelector', () => {
   });
   it('warns on a malformed path', () => {
     expect(errs('path:f_order').some((x) => /Path needs/.test(x.message))).toBe(true);
+  });
+  it('validates dotted atoms without diagnostics', () => {
+    expect(errs('.group:sales .d_customer')).toEqual([]);
   });
 });

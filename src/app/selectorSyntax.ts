@@ -52,6 +52,13 @@ export function tokenizeSelector(text: string): Token[] {
       continue;
     }
 
+    // Leading dot (collapse modifier)
+    if (text[i] === '.') {
+      tokens.push({ from: i, to: i + 1, kind: 'operator', text: '.' });
+      i++;
+      continue;
+    }
+
     // Identifier: starts [A-Za-z_]
     if (/[A-Za-z_]/.test(text[i])) {
       const from = i;
@@ -113,6 +120,12 @@ function extractPiece(
 ): { piece: string; pieceFrom: number; pieceTo: number } | null {
   let s = chunk;
   let offset = 0;
+
+  // Strip leading .
+  if (s.startsWith('.')) {
+    s = s.slice(1);
+    offset += 1;
+  }
 
   // Strip leading !
   if (s.startsWith('!')) {
@@ -212,6 +225,12 @@ function validatePart(
   diagnostics: Diagnostic[],
 ): void {
   if (!part) return;
+
+  // Strip leading . (collapse modifier)
+  if (part.startsWith('.')) {
+    part = part.slice(1);
+    partStart += 1;
+  }
 
   // path: prefix
   if (part.startsWith('path:')) {

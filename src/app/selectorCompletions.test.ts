@@ -57,4 +57,13 @@ describe('selectorCompletions', () => {
     const opts = labels('d_p');
     expect(opts[0]).toBe('d_product');
   });
+  it('completes after a leading dot', () => {
+    const r = selectorCompletions(model, '.d_cu');
+    expect(r.from).toBe(1);
+    expect(r.options.some((o) => o.label.startsWith('d_cu'))).toBe(true);
+  });
+  it('completes dotted group keywords', () => {
+    const r = selectorCompletions(model, '.group:sa');
+    expect(r.options.some((o) => o.type === 'group')).toBe(true);
+  });
 });
