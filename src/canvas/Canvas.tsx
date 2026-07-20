@@ -1,6 +1,7 @@
 // src/canvas/Canvas.tsx
-import { useEffect, useMemo, useState } from 'react';
-import { ReactFlow, Background, Controls, ReactFlowProvider, type Node, type Edge } from '@xyflow/react';
+import { useEffect, useMemo, useState, type CSSProperties } from 'react';
+import { ReactFlow, Background, Controls, ReactFlowProvider, useReactFlow, getNodesBounds, getViewportForBounds, type Node, type Edge } from '@xyflow/react';
+import { toPng } from 'html-to-image';
 import { buildAdjacency } from '@/model/graph';
 import type { Model } from '@/model/types';
 import { resolveSelection } from '@/selection/resolveSelection';
@@ -13,6 +14,19 @@ import { RefEdge } from '@/canvas/RefEdge';
 import { HopStepper } from '@/app/HopStepper';
 import { useAppStore } from '@/app/store';
 import { expandGroup, collapseGroup, expandedGroupTokens } from '@/app/selectorEdit';
+import { selectionToDbml } from '@/app/exportDbml';
+
+const hudButtonStyle: CSSProperties = {
+  fontFamily: '"Spline Sans Mono", monospace',
+  fontSize: 11,
+  color: 'var(--ink-2)',
+  background: 'rgba(13,16,24,.7)',
+  border: '1px solid var(--line)',
+  padding: '5px 9px',
+  borderRadius: 7,
+  cursor: 'pointer',
+  backdropFilter: 'blur(6px)',
+};
 
 const nodeTypes = { table: TableNode, tableCompact: TableNodeCompact, group: GroupNode };
 const edgeTypes = { ref: RefEdge };
@@ -36,6 +50,37 @@ export function Canvas({
   const pathMode = useAppStore((s) => s.pathMode);
   const pathStart = useAppStore((s) => s.pathStart);
   const pickPathTable = useAppStore((s) => s.pickPathTable);
+  const { getNodes } = useReactFlow();
+  const [copied, setCopied] = useState(false);
+
+  const copyDbml = async () => {
+    const dbml = selectionToDbml(model, resolveSelection(model, selector, adjacency));
+    await navigator.clipboard.writeText(dbml);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1500);
+  };
+
+  const exportPng = async () => {
+    const bounds = getNodesBounds(getNodes());
+    const width = Math.min(bounds.width + 80, 4096);
+    const height = Math.min(bounds.height + 80, 4096);
+    const viewport = getViewportForBounds(bounds, width, height, 0.2, 2, 0.1);
+    const el = document.querySelector('.react-flow__viewport') as HTMLElement;
+    const dataUrl = await toPng(el, {
+      width,
+      height,
+      style: {
+        width: `${width}px`,
+        height: `${height}px`,
+        transform: `translate(${viewport.x}px, ${viewport.y}px) scale(${viewport.zoom})`,
+      },
+      backgroundColor: '#0d1018',
+    });
+    const a = document.createElement('a');
+    a.download = 'dbml-flow.png';
+    a.href = dataUrl;
+    a.click();
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -133,6 +178,24 @@ export function Canvas({
             {pathStart ? 'Pick target table' : 'Pick start table'}
           </div>
         )}
+      </div>
+      <div
+        style={{
+          position: 'absolute',
+          right: 16,
+          top: 14,
+          display: 'flex',
+          gap: 8,
+          alignItems: 'center',
+          zIndex: 6,
+        }}
+      >
+        <button onClick={copyDbml} style={hudButtonStyle}>
+          {copied ? 'Copied' : 'Copy DBML'}
+        </button>
+        <button onClick={exportPng} style={hudButtonStyle}>
+          PNG
+        </button>
       </div>
       <ReactFlow
         nodes={nodes}
