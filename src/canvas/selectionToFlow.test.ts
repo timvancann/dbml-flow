@@ -250,6 +250,8 @@ describe('mixed detail rendering', () => {
     for (const e of out) {
       expect(e.sourceHandle).toBeUndefined();
       expect(e.targetHandle).toBeUndefined();
+      expect(e.data.fromCardinality).toBeUndefined();
+      expect(e.data.toCardinality).toBeUndefined();
     }
   });
 
@@ -260,5 +262,19 @@ describe('mixed detail rendering', () => {
       expect(e.sourceHandle).toBeDefined();
       expect(e.data.count).toBe(1);
     }
+  });
+
+  it('a single ref between a table and a super-group drops cardinality and column data', () => {
+    // model.shop.f_order references model.shop.d_product, which lives inside
+    // the shop.inventory super-group; d_product is not itself full/selected.
+    const sel = resolveSelection(model, '.g:* f_order');
+    const { edges } = selectionToFlow(model, sel);
+    const toGroup = edges.find((e) => e.target === 'shop.inventory' || e.source === 'shop.inventory');
+    expect(toGroup).toBeDefined();
+    expect(toGroup!.data).toEqual({ count: expect.any(Number) });
+    expect(toGroup!.data.fromColumn).toBeUndefined();
+    expect(toGroup!.data.toColumn).toBeUndefined();
+    expect(toGroup!.data.fromCardinality).toBeUndefined();
+    expect(toGroup!.data.toCardinality).toBeUndefined();
   });
 });

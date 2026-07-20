@@ -190,6 +190,7 @@ export function selectionToFlow(
     const targetHandle = tgtFull ? ref.toColumns[0] : undefined;
 
     const bothGroups = memberToGroup.has(ref.fromTable) && memberToGroup.has(ref.toTable);
+    const anyGroup = memberToGroup.has(ref.fromTable) || memberToGroup.has(ref.toTable);
     let source = src.node;
     let target = tgt.node;
     if (bothGroups) [source, target] = [source, target].sort();
@@ -210,13 +211,15 @@ export function selectionToFlow(
         target,
         sourceHandle,
         targetHandle,
-        data: {
-          count: 1,
-          fromColumn: ref.fromColumns[0],
-          toColumn: ref.toColumns[0],
-          fromCardinality: ref.fromCardinality,
-          toCardinality: ref.toCardinality,
-        },
+        data: anyGroup
+          ? { count: 1 }
+          : {
+              count: 1,
+              fromColumn: ref.fromColumns[0],
+              toColumn: ref.toColumns[0],
+              fromCardinality: ref.fromCardinality,
+              toCardinality: ref.toCardinality,
+            },
       });
     }
   }

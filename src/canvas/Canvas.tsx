@@ -220,12 +220,12 @@ export function Canvas({
         minZoom={0.1}
         onNodeClick={(_, node) => {
           if (pathMode) {
-            if (node.type === 'table') {
+            if (node.type === 'table' || node.type === 'tableCompact') {
               pickPathTable((node.data as { name: string }).name);
             }
             return;
           }
-          if (node.type === 'table') {
+          if (node.type === 'table' || node.type === 'tableCompact') {
             const name = (node.data as { name: string }).name;
             const seg = name.split('.').pop() ?? name;
             onTableFocus?.(seg);
