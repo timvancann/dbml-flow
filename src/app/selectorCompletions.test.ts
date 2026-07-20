@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { loadModel } from '@/model/loadModel';
-import { selectorCompletions } from '@/app/selectorCompletions';
+import { selectorCompletions, matchSegs } from '@/app/selectorCompletions';
 
 const model = loadModel(readFileSync('src/model/__fixtures__/grouped.dbml', 'utf8'));
 const labels = (text: string) => selectorCompletions(model, text).options.map((o) => o.label);
@@ -65,5 +65,8 @@ describe('selectorCompletions', () => {
   it('completes dotted group keywords', () => {
     const r = selectorCompletions(model, '.group:sa');
     expect(r.options.some((o) => o.type === 'group')).toBe(true);
+  });
+  it('matchSegs is exported and ranks prefix matches first', () => {
+    expect(matchSegs(['ab', 'ba', 'b'], 'b')).toEqual(['b', 'ba', 'ab']);
   });
 });

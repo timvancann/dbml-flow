@@ -7,6 +7,7 @@ import { Inspector } from '@/app/Inspector';
 import { DatabaseChooser } from '@/app/DatabaseChooser';
 import { focusSelector } from '@/app/focus';
 import { loadDatabase } from '@/app/bootstrap';
+import { QuickJump } from '@/app/QuickJump';
 
 export function AppShell() {
   const model = useAppStore((s) => s.model);
@@ -45,6 +46,7 @@ export function AppShell() {
       <aside className="border-r border-[var(--line)] bg-[var(--panel)] overflow-hidden" data-slot="rail"><LeftRail /></aside>
       <main className="min-w-0">
         {model && <CanvasApp model={model} selector={selector} onSelectorChange={setSelector} onTableSelect={setSelectedTable} onTableFocus={(seg) => setSelector(focusSelector(seg))} />}
+        <QuickJump />
       </main>
       <aside className="border-l border-[var(--line)] bg-[var(--panel)] overflow-auto" data-slot="inspector"><Inspector /></aside>
     </div>

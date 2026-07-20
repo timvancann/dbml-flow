@@ -20,14 +20,15 @@ function sorted(segs: string[]): string[] {
 }
 
 // Case-insensitive substring match ("not totally fuzzy"): keep segments that
-// CONTAIN the query, with prefix matches ranked first. `segs` must be sorted so
-// alphabetical order is preserved within each rank.
-function matchSegs(segs: string[], query: string): string[] {
+// CONTAIN the query, with prefix matches ranked first. Alphabetical order is
+// preserved within each rank regardless of input order.
+export function matchSegs(segs: string[], query: string): string[] {
   if (!query) return segs;
   const q = query.toLowerCase();
+  const sortedSegs = [...segs].sort();
   const starts: string[] = [];
   const contains: string[] = [];
-  for (const s of segs) {
+  for (const s of sortedSegs) {
     const i = s.toLowerCase().indexOf(q);
     if (i === 0) starts.push(s);
     else if (i > 0) contains.push(s);
