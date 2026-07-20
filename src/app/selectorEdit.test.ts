@@ -28,4 +28,9 @@ describe('selectorEdit', () => {
       { token: 'g:ops_*', name: 'ops_*' },
     ]);
   });
+
+  it('expandGroup replaces a collapsed dotted token (round-trip)', () => {
+    expect(expandGroup('.g:* .group:sales', 'sales')).toBe('.g:* group:sales');
+    expect(expandGroup('.g:* .g:sales', 'sales')).toBe('.g:* group:sales');
+  });
 });

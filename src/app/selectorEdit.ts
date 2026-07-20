@@ -14,8 +14,9 @@ export function toggleTableCollapsed(selector: string, tableName: string, collap
 export function expandGroup(selector: string, groupName: string): string {
   const base = selector.trim() === '' ? '.g:*' : selector.trim();
   const token = `group:${groupName}`;
-  if (tokens(base).includes(token)) return base;
-  return `${base} ${token}`;
+  const kept = tokens(base).filter((t) => t !== `.group:${groupName}` && t !== `.g:${groupName}`);
+  if (!kept.includes(token)) kept.push(token);
+  return kept.join(' ');
 }
 
 export function collapseGroup(selector: string, groupName: string): string {
