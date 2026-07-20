@@ -30,6 +30,16 @@ describe('parseDbml', () => {
     expect(ref.toTable).toBe('model.shop.d_product');
   });
 
+  it('captures endpoint cardinalities', () => {
+    const { refs } = parseDbml(grouped);
+    const ref = refs.find(
+      (r) => r.fromTable === 'model.shop.f_order'
+        && r.fromColumns.includes('sk_product'),
+    )!;
+    expect(ref.fromCardinality).toBe('*');
+    expect(ref.toCardinality).toBe('1');
+  });
+
   it('reads native TableGroup membership (grouped) and none for raw', () => {
     expect(parseDbml(grouped).tables.some((t) => t.group !== undefined)).toBe(true);
     expect(parseDbml(raw).tables.every((t) => t.group === undefined)).toBe(true);

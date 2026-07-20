@@ -5,6 +5,7 @@ import type { Ref, Table } from '@/model/types';
 const t = (name: string): Table => ({ name, columns: [] });
 const ref = (from: string, to: string): Ref => ({
   id: `${from}->${to}`, fromTable: from, fromColumns: ['x'], toTable: to, toColumns: ['y'],
+  fromCardinality: '*', toCardinality: '1',
 });
 
 // fact f -> dim d1; fact f -> dim d2; dim d1 -> dim d3 (chain)

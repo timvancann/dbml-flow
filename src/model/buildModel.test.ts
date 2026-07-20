@@ -18,7 +18,10 @@ describe('buildModel', () => {
   });
 
   it('keeps refs as-is', () => {
-    const ref: Ref = { id: 'r', fromTable: 'a', fromColumns: ['x'], toTable: 'b', toColumns: ['y'] };
+    const ref: Ref = {
+      id: 'r', fromTable: 'a', fromColumns: ['x'], toTable: 'b', toColumns: ['y'],
+      fromCardinality: '*', toCardinality: '1',
+    };
     const model = buildModel([t('a'), t('b')], [ref]);
     expect(model.refs).toEqual([ref]);
   });

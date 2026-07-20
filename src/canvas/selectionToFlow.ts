@@ -55,7 +55,13 @@ export interface FlowEdge {
   target: string;
   sourceHandle?: string;
   targetHandle?: string;
-  data: { count: number; fromColumn?: string; toColumn?: string };
+  data: {
+    count: number;
+    fromColumn?: string;
+    toColumn?: string;
+    fromCardinality?: '1' | '*';
+    toCardinality?: '1' | '*';
+  };
 }
 
 export function estimateNodeSize(data: Pick<TableNodeData, 'columns' | 'hiddenCount'>): {
@@ -195,6 +201,8 @@ export function selectionToFlow(
       existing.id = bothGroups ? existing.id : `agg:${key}`;
       delete existing.data.fromColumn;
       delete existing.data.toColumn;
+      delete existing.data.fromCardinality;
+      delete existing.data.toCardinality;
     } else {
       merged.set(key, {
         id: bothGroups ? `${source}--${target}` : ref.id,
@@ -202,7 +210,13 @@ export function selectionToFlow(
         target,
         sourceHandle,
         targetHandle,
-        data: { count: 1, fromColumn: ref.fromColumns[0], toColumn: ref.toColumns[0] },
+        data: {
+          count: 1,
+          fromColumn: ref.fromColumns[0],
+          toColumn: ref.toColumns[0],
+          fromCardinality: ref.fromCardinality,
+          toCardinality: ref.toCardinality,
+        },
       });
     }
   }

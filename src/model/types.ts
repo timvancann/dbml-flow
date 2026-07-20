@@ -18,6 +18,8 @@ export interface Ref {
   fromColumns: string[];
   toTable: string;
   toColumns: string[];
+  fromCardinality: '1' | '*';
+  toCardinality: '1' | '*';
 }
 
 export interface Group {

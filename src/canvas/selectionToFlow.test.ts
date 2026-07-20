@@ -132,15 +132,15 @@ describe('selectionToFlow', () => {
         ],
       ]),
       refs: [
-        { id: 'ref1', fromTable: 'test_table', fromColumns: ['fk_1'], toTable: 'ref_target_1', toColumns: ['id'] },
-        { id: 'ref2', fromTable: 'test_table', fromColumns: ['fk_2'], toTable: 'ref_target_2', toColumns: ['id'] },
-        { id: 'ref3', fromTable: 'test_table', fromColumns: ['fk_3'], toTable: 'ref_target_3', toColumns: ['id'] },
-        { id: 'ref4', fromTable: 'test_table', fromColumns: ['fk_4'], toTable: 'ref_target_4', toColumns: ['id'] },
-        { id: 'ref5', fromTable: 'test_table', fromColumns: ['fk_5'], toTable: 'ref_target_5', toColumns: ['id'] },
-        { id: 'ref6', fromTable: 'test_table', fromColumns: ['fk_6'], toTable: 'ref_target_6', toColumns: ['id'] },
-        { id: 'ref7', fromTable: 'test_table', fromColumns: ['fk_7'], toTable: 'ref_target_7', toColumns: ['id'] },
-        { id: 'ref8', fromTable: 'test_table', fromColumns: ['fk_8'], toTable: 'ref_target_8', toColumns: ['id'] },
-        { id: 'ref9', fromTable: 'test_table', fromColumns: ['fk_9'], toTable: 'ref_target_9', toColumns: ['id'] },
+        { id: 'ref1', fromTable: 'test_table', fromColumns: ['fk_1'], toTable: 'ref_target_1', toColumns: ['id'] , fromCardinality: '*', toCardinality: '1' },
+        { id: 'ref2', fromTable: 'test_table', fromColumns: ['fk_2'], toTable: 'ref_target_2', toColumns: ['id'] , fromCardinality: '*', toCardinality: '1' },
+        { id: 'ref3', fromTable: 'test_table', fromColumns: ['fk_3'], toTable: 'ref_target_3', toColumns: ['id'] , fromCardinality: '*', toCardinality: '1' },
+        { id: 'ref4', fromTable: 'test_table', fromColumns: ['fk_4'], toTable: 'ref_target_4', toColumns: ['id'] , fromCardinality: '*', toCardinality: '1' },
+        { id: 'ref5', fromTable: 'test_table', fromColumns: ['fk_5'], toTable: 'ref_target_5', toColumns: ['id'] , fromCardinality: '*', toCardinality: '1' },
+        { id: 'ref6', fromTable: 'test_table', fromColumns: ['fk_6'], toTable: 'ref_target_6', toColumns: ['id'] , fromCardinality: '*', toCardinality: '1' },
+        { id: 'ref7', fromTable: 'test_table', fromColumns: ['fk_7'], toTable: 'ref_target_7', toColumns: ['id'] , fromCardinality: '*', toCardinality: '1' },
+        { id: 'ref8', fromTable: 'test_table', fromColumns: ['fk_8'], toTable: 'ref_target_8', toColumns: ['id'] , fromCardinality: '*', toCardinality: '1' },
+        { id: 'ref9', fromTable: 'test_table', fromColumns: ['fk_9'], toTable: 'ref_target_9', toColumns: ['id'] , fromCardinality: '*', toCardinality: '1' },
       ],
     };
 
@@ -218,7 +218,7 @@ describe('mixed detail rendering', () => {
         ],
       ]),
       refs: [
-        { id: 'ref_self', fromTable: 'employee', fromColumns: ['manager_id'], toTable: 'employee', toColumns: ['id'] },
+        { id: 'ref_self', fromTable: 'employee', fromColumns: ['manager_id'], toTable: 'employee', toColumns: ['id'] , fromCardinality: '*', toCardinality: '1' },
       ],
     };
     const { edges } = selectionToFlow(selfRefModel, {

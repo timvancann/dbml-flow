@@ -9,11 +9,13 @@ import { layoutGraph } from '@/canvas/layout';
 import { TableNode } from '@/canvas/TableNode';
 import { TableNodeCompact } from '@/canvas/TableNodeCompact';
 import { GroupNode } from '@/canvas/GroupNode';
+import { RefEdge } from '@/canvas/RefEdge';
 import { HopStepper } from '@/app/HopStepper';
 import { useAppStore } from '@/app/store';
 import { expandGroup, collapseGroup, expandedGroupTokens } from '@/app/selectorEdit';
 
 const nodeTypes = { table: TableNode, tableCompact: TableNodeCompact, group: GroupNode };
+const edgeTypes = { ref: RefEdge };
 
 export function Canvas({
   model,
@@ -48,6 +50,8 @@ export function Canvas({
           id: e.id, source: e.source, target: e.target,
           sourceHandle: e.sourceHandle,
           targetHandle: e.targetHandle,
+          type: 'ref',
+          data: e.data,
           style: { stroke: 'var(--edge)', strokeWidth: 1.4, opacity: 0.5 },
         })) as Edge[],
       );
@@ -134,6 +138,7 @@ export function Canvas({
         nodes={nodes}
         edges={edges}
         nodeTypes={nodeTypes}
+        edgeTypes={edgeTypes}
         fitView
         minZoom={0.1}
         onNodeClick={(_, node) => {

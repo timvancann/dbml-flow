@@ -68,6 +68,8 @@ export function parseDbml(content: string): { tables: Table[]; refs: Ref[] } {
         fromColumns: fromCols,
         toTable: to.tableName,
         toColumns: toCols,
+        fromCardinality: from.relation === '*' ? '*' : '1',
+        toCardinality: to.relation === '*' ? '*' : '1',
       });
     }
   }
