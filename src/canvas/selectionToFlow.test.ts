@@ -7,6 +7,7 @@ import {
   MAX_VISIBLE_COLUMNS,
   COMPACT_H,
   type CompactTableNodeData,
+  type GroupNodeData,
 } from '@/canvas/selectionToFlow';
 import type { Model } from '@/model/types';
 
@@ -191,10 +192,48 @@ describe('mixed detail rendering', () => {
     const { nodes, edges } = selectionToFlow(model, sel);
     // group node per group, undirected merged edges with a--b ids and counts
     expect(nodes.map((n) => n.id).sort()).toEqual([...model.groups.keys()].sort());
+    expect(nodes).toHaveLength(3);
+    const sales = nodes.find((n) => n.id === 'shop.sales')!;
+    expect((sales.data as GroupNodeData).tableCount).toBe(3);
+    expect((sales.data as GroupNodeData).refCount).toBe(2);
     for (const e of edges) {
       expect(e.id).toBe([e.source, e.target].sort().join('--'));
       expect(e.data.count).toBeGreaterThan(0);
     }
+  });
+
+  it('a self-referencing FK on a non-member table still produces an edge', () => {
+    const selfRefModel: Model = {
+      tables: new Map([
+        [
+          'employee',
+          {
+            name: 'employee',
+            group: 'org',
+            columns: [
+              { name: 'id', type: 'int', isPrimaryKey: true },
+              { name: 'manager_id', type: 'int', isPrimaryKey: false },
+            ],
+          },
+        ],
+      ]),
+      refs: [
+        { id: 'ref_self', fromTable: 'employee', fromColumns: ['manager_id'], toTable: 'employee', toColumns: ['id'] },
+      ],
+    };
+    const { edges } = selectionToFlow(selfRefModel, {
+      nodes: new Set(['employee']),
+      edges: selfRefModel.refs,
+      full: new Set(['employee']),
+      collapsed: new Set(),
+      superGroups: new Map(),
+    });
+    expect(edges).toHaveLength(1);
+    expect(edges[0].source).toBe('employee');
+    expect(edges[0].target).toBe('employee');
+    expect(edges[0].data.count).toBe(1);
+    expect(edges[0].sourceHandle).toBe('manager_id');
+    expect(edges[0].targetHandle).toBe('id');
   });
 
   it('edges re-anchor onto super-group nodes and merge with counts', () => {

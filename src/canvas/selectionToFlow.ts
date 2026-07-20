@@ -167,14 +167,16 @@ export function selectionToFlow(
     });
   }
 
-  const anchor = (table: string): { node: string; column?: string } =>
+  const anchor = (table: string): { node: string } =>
     memberToGroup.has(table) ? { node: memberToGroup.get(table)! } : { node: table };
 
   const merged = new Map<string, FlowEdge>();
   for (const ref of selection.edges) {
     const src = anchor(ref.fromTable);
     const tgt = anchor(ref.toTable);
-    if (src.node === tgt.node) continue; // intra-super-group
+    // Drop only refs collapsed onto the same super-group node; a genuine
+    // self-referencing FK on a non-member table must still produce an edge.
+    if (src.node === tgt.node && memberToGroup.has(ref.fromTable)) continue; // intra-super-group
 
     const srcFull = selection.full.has(ref.fromTable) && src.node === ref.fromTable;
     const tgtFull = selection.full.has(ref.toTable) && tgt.node === ref.toTable;
