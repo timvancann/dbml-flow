@@ -47,6 +47,7 @@ export function Canvas({
   const adjacency = useMemo(() => buildAdjacency(model), [model]);
   const [nodes, setNodes] = useState<Node[]>([]);
   const [edges, setEdges] = useState<Edge[]>([]);
+  const [hoveredNode, setHoveredNode] = useState<string | null>(null);
   const pathMode = useAppStore((s) => s.pathMode);
   const pathStart = useAppStore((s) => s.pathStart);
   const pickPathTable = useAppStore((s) => s.pickPathTable);
@@ -98,6 +99,7 @@ export function Canvas({
 
   useEffect(() => {
     let cancelled = false;
+    setHoveredNode(null);
 
     const raw = selectionToFlow(model, resolveSelection(model, selector, adjacency));
 
@@ -121,6 +123,36 @@ export function Canvas({
 
   const tableCount = nodes.filter((n) => n.type === 'table' || n.type === 'tableCompact').length;
   const edgeCount = edges.length;
+
+  const connectedNodeIds = useMemo(() => {
+    if (!hoveredNode) return null;
+    const set = new Set<string>([hoveredNode]);
+    for (const e of edges) {
+      if (e.source === hoveredNode) set.add(e.target);
+      if (e.target === hoveredNode) set.add(e.source);
+    }
+    return set;
+  }, [hoveredNode, edges]);
+
+  const displayNodes = useMemo(() => {
+    if (!connectedNodeIds) return nodes;
+    return nodes.map((n) =>
+      connectedNodeIds.has(n.id)
+        ? n
+        : { ...n, style: { ...n.style, opacity: 0.18, transition: 'opacity 120ms' } },
+    );
+  }, [nodes, connectedNodeIds]);
+
+  const displayEdges = useMemo(() => {
+    if (!connectedNodeIds) return edges;
+    return edges.map((e) => {
+      const connected = e.source === hoveredNode || e.target === hoveredNode;
+      return {
+        ...e,
+        style: { ...e.style, opacity: connected ? 1 : 0.06 },
+      };
+    });
+  }, [edges, connectedNodeIds, hoveredNode]);
 
   return (
     <div className="dbml-canvas" style={{ width: '100%', height: '100%', position: 'relative' }}>
@@ -218,13 +250,15 @@ export function Canvas({
         </button>
       </div>
       <ReactFlow
-        nodes={nodes}
-        edges={edges}
+        nodes={displayNodes}
+        edges={displayEdges}
         nodeTypes={nodeTypes}
         edgeTypes={edgeTypes}
         fitView
         minZoom={0.1}
         zoomOnDoubleClick={false}
+        onNodeMouseEnter={(_, node) => setHoveredNode(node.id)}
+        onNodeMouseLeave={() => setHoveredNode(null)}
         onNodeClick={(_, node) => {
           if (pathMode) {
             if (node.type === 'table' || node.type === 'tableCompact') {
