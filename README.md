@@ -37,7 +37,7 @@ they connected?"
   | `path:a>b` | shortest FK path between two tables |
   | `.x` / `.group:sales` | collapse: compact table card / group super-node |
 
-- **Mixed-detail canvas** — collapse any table to a compact card (`.d_customer`) or any
+- **Mixed-detail canvas**: collapse any table to a compact card (`.d_customer`) or any
   group to a super-node (`.group:sales` / `.g:sales_*`) while the rest of the selection
   stays fully expanded, so you can zoom into one area without hiding your bearings
   elsewhere. An empty selector defaults to `.g:*` (all groups collapsed); when a table or
@@ -51,13 +51,16 @@ they connected?"
 - **Fact/dimension coding** — facts amber, dimensions cyan, FK ports and PK badges, with an
   elk crossing-minimized layout. Cardinality glyphs mark each edge end (1/N), and merged
   edges show a count chip.
-- **Quick-jump (Cmd/Ctrl-K)** — jump straight to any table by name; it focuses that table's
+- **Quick-jump (Cmd/Ctrl-K)**: jump straight to any table by name; it focuses that table's
   neighborhood.
-- **Export** — copy the current selection's DBML or a PNG snapshot of the canvas straight
+- **Export**: copy the current selection's DBML or a PNG snapshot of the canvas straight
   from the HUD.
-- **Recent selectors** — a history dropdown lets you jump back to a previous selector
+- **Recent selectors**: a history dropdown lets you jump back to a previous selector
   without retyping it.
-- **Minimap** — graphs of 10+ nodes get a minimap for orientation when panning.
+- **Minimap**: graphs of 10+ nodes get a minimap for orientation when panning.
+- **Path-mode start feedback**: after picking a start table for "Find path", it's marked in
+  the left rail and the canvas HUD shows `start: <table>` while you pick the end table.
+- **Selector clear**: an "x" in the selector box resets the view back to the overview.
 - **Bring your own schema** — upload a `.dbml` file in-app, or bake one or more into the
   Docker image (below); with several baked, the app opens a picker to choose a database. The
   current database and selector persist in the URL, so a view is just a link you can share.
