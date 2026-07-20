@@ -4,6 +4,7 @@ export interface Atom {
   op: Op;
   hops: number;
   piece: string;
+  collapsed: boolean;
 }
 
 export interface SelectorAst {
@@ -12,21 +13,27 @@ export interface SelectorAst {
 }
 
 export function parseAtom(raw: string): Atom {
+  let collapsed = false;
+  if (raw.startsWith('.')) {
+    collapsed = true;
+    raw = raw.slice(1);
+  }
+
   let m: RegExpExecArray | null;
 
   // Undirected prefix: ~ or ~N
   if ((m = /^~(\d*)(.+)$/.exec(raw))) {
-    return { op: 'both', hops: m[1] ? parseInt(m[1], 10) : 1, piece: m[2] };
+    return { op: 'both', hops: m[1] ? parseInt(m[1], 10) : 1, piece: m[2], collapsed };
   }
   // Toward-facts prefix: + or N+
   if ((m = /^(\d*)\+(.+)$/.exec(raw))) {
-    return { op: 'in', hops: m[1] ? parseInt(m[1], 10) : 1, piece: m[2] };
+    return { op: 'in', hops: m[1] ? parseInt(m[1], 10) : 1, piece: m[2], collapsed };
   }
   // Toward-dims suffix: piece+ or piece+N
   if ((m = /^(.+?)\+(\d*)$/.exec(raw))) {
-    return { op: 'out', hops: m[2] ? parseInt(m[2], 10) : 1, piece: m[1] };
+    return { op: 'out', hops: m[2] ? parseInt(m[2], 10) : 1, piece: m[1], collapsed };
   }
-  return { op: 'none', hops: 0, piece: raw };
+  return { op: 'none', hops: 0, piece: raw, collapsed };
 }
 
 export function parseSelector(input: string): SelectorAst {
