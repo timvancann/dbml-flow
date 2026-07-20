@@ -2,6 +2,12 @@
 
 ![DBML Flow](docs/assets/wordmark.png)
 
+[![Release](https://img.shields.io/github/v/release/timvancann/dbml-flow?style=flat-square&color=8b9cff)](https://github.com/timvancann/dbml-flow/releases)
+[![Build](https://img.shields.io/github/actions/workflow/status/timvancann/dbml-flow/release.yml?branch=main&style=flat-square&label=build)](https://github.com/timvancann/dbml-flow/actions/workflows/release.yml)
+[![Docker](https://img.shields.io/badge/ghcr.io-dbml--flow-2496ED?style=flat-square&logo=docker&logoColor=white)](https://github.com/timvancann/dbml-flow/pkgs/container/dbml-flow)
+[![TypeScript](https://img.shields.io/github/languages/top/timvancann/dbml-flow?style=flat-square&logo=typescript&logoColor=white)](https://github.com/timvancann/dbml-flow)
+[![License](https://img.shields.io/github/license/timvancann/dbml-flow?style=flat-square)](LICENSE)
+
 ### [▶ Live demo](https://timvancann.github.io/dbml-flow/)
 
 </div>
