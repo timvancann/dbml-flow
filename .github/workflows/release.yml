@@ -63,6 +63,26 @@ jobs:
           TAG="${{ steps.bump.outputs.tag }}"
           git push --atomic origin HEAD:main "refs/tags/${TAG}"
 
+      # Slice this version's section out of the changelog and publish it as a
+      # GitHub Release. Done in the same run because the token-pushed tag
+      # cannot trigger a tag-based workflow.
+      - name: Create GitHub Release
+        if: steps.bump.outputs.released == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="${{ steps.bump.outputs.tag }}"
+          VERSION="${TAG#v}"
+          awk -v ver="$VERSION" '
+            $0 ~ "^##[[:space:]]+v?"ver"([[:space:]]|$)" {on=1; next}
+            on && /^##[[:space:]]/ {exit}
+            on {print}
+          ' CHANGELOG.md > release-notes.md
+          if [ ! -s release-notes.md ]; then
+            echo "See CHANGELOG.md for details." > release-notes.md
+          fi
+          gh release create "$TAG" --title "$TAG" --notes-file release-notes.md
+
   build:
     needs: version
     if: needs.version.outputs.released == 'true'
