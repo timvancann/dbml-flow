@@ -1,6 +1,6 @@
 // src/canvas/Canvas.tsx
 import { useEffect, useMemo, useState, type CSSProperties } from 'react';
-import { ReactFlow, Background, Controls, ReactFlowProvider, useReactFlow, getNodesBounds, getViewportForBounds, type Node, type Edge } from '@xyflow/react';
+import { ReactFlow, Background, Controls, ReactFlowProvider, useReactFlow, getNodesBounds, getViewportForBounds, MiniMap, type Node, type Edge } from '@xyflow/react';
 import { toPng } from 'html-to-image';
 import { buildAdjacency } from '@/model/graph';
 import type { Model } from '@/model/types';
@@ -237,6 +237,16 @@ export function Canvas({
       >
         <Background color="#1e2636" gap={28} />
         <Controls />
+        {nodes.length >= 10 && (
+          <MiniMap
+            pannable
+            zoomable
+            style={{ background: 'var(--bg-2)', border: '1px solid var(--line)', borderRadius: 8 }}
+            maskColor="rgba(13,16,24,.75)"
+            nodeColor={(n) => (n.type === 'group' ? 'var(--panel-2)' : 'var(--line-2)')}
+            nodeStrokeColor="var(--line)"
+          />
+        )}
       </ReactFlow>
     </div>
   );
