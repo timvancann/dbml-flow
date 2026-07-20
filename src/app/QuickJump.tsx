@@ -36,7 +36,7 @@ export function QuickJump() {
   if (!open || !model) return null;
 
   const pick = (seg: string, union: boolean) => {
-    setSelector(union && selector.trim() ? `${selector.trim()} ${seg}` : seg);
+    setSelector(union && selector.trim() ? `${selector.trim()} ~1${seg}` : `~1${seg}`);
     setOpen(false);
   };
 
