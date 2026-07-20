@@ -3,6 +3,9 @@ name: Publish Docker image
 on:
   push:
     branches: [main]
+    # Manually pushed tags only: tags pushed by release.yml use the default
+    # GITHUB_TOKEN, which does not trigger other workflows, so release.yml
+    # builds and pushes the semver image itself in the same run.
     tags: ['v*']
   workflow_dispatch:
 

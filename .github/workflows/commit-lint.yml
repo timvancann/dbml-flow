@@ -1,0 +1,36 @@
+name: Commit lint
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  commitizen:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - run: pipx install commitizen
+
+      - name: Determine commit range
+        id: range
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            echo "range=${{ github.event.pull_request.base.sha }}..${{ github.event.pull_request.head.sha }}" >> "$GITHUB_OUTPUT"
+          else
+            TAG=$(git describe --tags --abbrev=0 --match 'v*' 2>/dev/null || true)
+            if [ -n "$TAG" ]; then
+              echo "range=${TAG}..HEAD" >> "$GITHUB_OUTPUT"
+            else
+              echo "range=$(git rev-list --max-parents=0 HEAD)..HEAD" >> "$GITHUB_OUTPUT"
+            fi
+          fi
+
+      - run: cz check --rev-range "${{ steps.range.outputs.range }}"
