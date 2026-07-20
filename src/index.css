@@ -183,3 +183,32 @@ body {
 .node-action-btn:hover {
   background: rgba(255, 255, 255, .07);
 }
+
+/* React Flow chrome: zoom controls and attribution, themed to match the canvas */
+.dbml-canvas .react-flow__controls {
+  box-shadow: 0 8px 24px -12px rgba(0, 0, 0, 0.8);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  overflow: hidden;
+}
+.dbml-canvas .react-flow__controls-button {
+  background: var(--panel-2);
+  border-bottom: 1px solid var(--line);
+  color: var(--ink-2);
+  width: 26px;
+  height: 26px;
+}
+.dbml-canvas .react-flow__controls-button:hover {
+  background: var(--panel);
+  color: var(--ink);
+}
+.dbml-canvas .react-flow__controls-button svg {
+  fill: currentColor;
+}
+.dbml-canvas .react-flow__attribution {
+  background: transparent;
+}
+.dbml-canvas .react-flow__attribution a {
+  color: var(--ink-3);
+  opacity: 0.55;
+}
