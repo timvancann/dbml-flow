@@ -45,6 +45,26 @@ export function SelectionBar() {
       {/* Selector area */}
       <div className="flex-1 flex items-center h-8 px-2.5 rounded-[9px] border border-[var(--line)] bg-[var(--bg-2)]">
         <SelectorInput />
+        {selector && (
+          <button
+            onClick={() => setSelector('')}
+            title="Clear selector"
+            style={{
+              color: 'var(--ink-3)',
+              background: 'none',
+              border: 'none',
+              cursor: 'pointer',
+              flexShrink: 0,
+              fontSize: 14,
+              lineHeight: 1,
+              padding: '0 2px',
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--ink-2)'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--ink-3)'; }}
+          >
+            ×
+          </button>
+        )}
       </div>
 
       {/* Recent selector history */}
