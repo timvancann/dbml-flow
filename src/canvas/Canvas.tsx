@@ -51,35 +51,48 @@ export function Canvas({
   const pathStart = useAppStore((s) => s.pathStart);
   const pickPathTable = useAppStore((s) => s.pickPathTable);
   const { getNodes } = useReactFlow();
-  const [copied, setCopied] = useState(false);
+  const [copyState, setCopyState] = useState<'idle' | 'success' | 'error'>('idle');
+  const [pngExportState, setPngExportState] = useState<'idle' | 'error'>('idle');
 
   const copyDbml = async () => {
-    const dbml = selectionToDbml(model, resolveSelection(model, selector, adjacency));
-    await navigator.clipboard.writeText(dbml);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 1500);
+    try {
+      const dbml = selectionToDbml(model, resolveSelection(model, selector, adjacency));
+      await navigator.clipboard.writeText(dbml);
+      setCopyState('success');
+      setTimeout(() => setCopyState('idle'), 1500);
+    } catch (err) {
+      console.error('Copy DBML failed', err);
+      setCopyState('error');
+      setTimeout(() => setCopyState('idle'), 1500);
+    }
   };
 
   const exportPng = async () => {
-    const bounds = getNodesBounds(getNodes());
-    const width = Math.min(bounds.width + 80, 4096);
-    const height = Math.min(bounds.height + 80, 4096);
-    const viewport = getViewportForBounds(bounds, width, height, 0.2, 2, 0.1);
-    const el = document.querySelector('.react-flow__viewport') as HTMLElement;
-    const dataUrl = await toPng(el, {
-      width,
-      height,
-      style: {
-        width: `${width}px`,
-        height: `${height}px`,
-        transform: `translate(${viewport.x}px, ${viewport.y}px) scale(${viewport.zoom})`,
-      },
-      backgroundColor: '#0d1018',
-    });
-    const a = document.createElement('a');
-    a.download = 'dbml-flow.png';
-    a.href = dataUrl;
-    a.click();
+    try {
+      const bounds = getNodesBounds(getNodes());
+      const width = Math.min(bounds.width + 80, 4096);
+      const height = Math.min(bounds.height + 80, 4096);
+      const viewport = getViewportForBounds(bounds, width, height, 0.2, 2, 0.1);
+      const el = document.querySelector('.react-flow__viewport') as HTMLElement;
+      const dataUrl = await toPng(el, {
+        width,
+        height,
+        style: {
+          width: `${width}px`,
+          height: `${height}px`,
+          transform: `translate(${viewport.x}px, ${viewport.y}px) scale(${viewport.zoom})`,
+        },
+        backgroundColor: '#0d1018',
+      });
+      const a = document.createElement('a');
+      a.download = 'dbml-flow.png';
+      a.href = dataUrl;
+      a.click();
+    } catch (err) {
+      console.error('PNG export failed', err);
+      setPngExportState('error');
+      setTimeout(() => setPngExportState('idle'), 1500);
+    }
   };
 
   useEffect(() => {
@@ -191,10 +204,10 @@ export function Canvas({
         }}
       >
         <button onClick={copyDbml} style={hudButtonStyle}>
-          {copied ? 'Copied' : 'Copy DBML'}
+          {copyState === 'success' ? 'Copied' : copyState === 'error' ? 'Copy failed' : 'Copy DBML'}
         </button>
         <button onClick={exportPng} style={hudButtonStyle}>
-          PNG
+          {pngExportState === 'error' ? 'PNG failed' : 'PNG'}
         </button>
       </div>
       <ReactFlow
