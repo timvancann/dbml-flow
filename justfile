@@ -14,6 +14,10 @@ default:
 dev:
     bun run dev
 
+# Install pre-commit hooks (pre-commit + commit-msg, for commitizen)
+hooks:
+    pre-commit install --hook-type pre-commit --hook-type commit-msg
+
 # Build the Docker image. Optionally bake one or more DBML files:
 #   just build                              # no baked schema (app shows the sample)
 #   just build warehouse.dbml               # one db → auto-loads on startup

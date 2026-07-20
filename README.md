@@ -76,6 +76,10 @@ bun install
 just dev          # or: bun run dev   → http://localhost:5173
 ```
 
+If you use `pre-commit`, install both hook types so commit-msg linting (commitizen)
+actually runs: `just hooks` (or `pre-commit install --hook-type pre-commit --hook-type
+commit-msg`).
+
 ## Tasks (`just`)
 
 ```bash
