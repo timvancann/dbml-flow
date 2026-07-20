@@ -224,6 +224,7 @@ export function Canvas({
         edgeTypes={edgeTypes}
         fitView
         minZoom={0.1}
+        zoomOnDoubleClick={false}
         onNodeClick={(_, node) => {
           if (pathMode) {
             if (node.type === 'table' || node.type === 'tableCompact') {

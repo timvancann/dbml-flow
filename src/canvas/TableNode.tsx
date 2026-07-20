@@ -24,7 +24,11 @@ export function TableNode({ data }: NodeProps & { data: TableNodeData }) {
         boxShadow: '0 18px 40px -22px rgba(0,0,0,.9), 0 2px 0 rgba(255,255,255,.02) inset',
       }}
     >
-      <div className="flex items-center gap-2 px-3 py-2 border-b border-[var(--line)]">
+      <div
+        className="flex items-center gap-2 px-3 py-2 border-b border-[var(--line)]"
+        style={{ userSelect: 'none' }}
+        onDoubleClick={(e) => { e.stopPropagation(); setSelector(toggleTableCollapsed(selector, data.name, true)); }}
+      >
         <span
           className="grid place-items-center flex-none rounded-[5px] text-[10px] font-bold"
           style={{ width: 19, height: 19, color: accent, background: accentDim }}
@@ -40,8 +44,8 @@ export function TableNode({ data }: NodeProps & { data: TableNodeData }) {
         </span>
         <button
           title="Collapse to compact card"
+          className="node-action-btn"
           onClick={(e) => { e.stopPropagation(); setSelector(toggleTableCollapsed(selector, data.name, true)); }}
-          style={{ background: 'none', border: 'none', color: 'var(--ink-3)', cursor: 'pointer', fontSize: 12, padding: 2, flexShrink: 0 }}
         >
           ▾
         </button>

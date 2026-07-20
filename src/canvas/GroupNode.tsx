@@ -9,8 +9,9 @@ export function GroupNode({ data }: NodeProps & { data: GroupNodeData }) {
       <Handle type="target" position={Position.Left} style={{ opacity: 0 }} />
       <button
         title="Focus this group (replace selector)"
+        className="node-action-btn"
         onClick={(e) => { e.stopPropagation(); useAppStore.getState().setSelector(`group:${data.name}`); }}
-        style={{ background: 'none', border: 'none', color: 'var(--ink-3)', cursor: 'pointer', fontSize: 11, padding: 2, float: 'right' }}
+        style={{ float: 'right' }}
       >
         ⤢
       </button>

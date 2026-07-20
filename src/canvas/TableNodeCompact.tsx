@@ -18,7 +18,9 @@ export function TableNodeCompact({ data }: NodeProps & { data: CompactTableNodeD
         fontFamily: '"Spline Sans Mono", monospace',
         background: 'linear-gradient(180deg, var(--panel-2), var(--panel))',
         boxShadow: '0 18px 40px -22px rgba(0,0,0,.9), 0 2px 0 rgba(255,255,255,.02) inset',
+        userSelect: 'none',
       }}
+      onDoubleClick={(e) => { e.stopPropagation(); setSelector(toggleTableCollapsed(selector, data.name, false)); }}
     >
       <Handle type="target" position={Position.Left} style={{ background: 'var(--dim)', width: 8, height: 8, border: '2px solid var(--panel-2)' }} />
       <span className="grid place-items-center flex-none rounded-[5px] text-[10px] font-bold" style={{ width: 19, height: 19, color: accent, background: accentDim }}>
@@ -32,8 +34,8 @@ export function TableNodeCompact({ data }: NodeProps & { data: CompactTableNodeD
       </div>
       <button
         title="Expand columns"
+        className="node-action-btn"
         onClick={(e) => { e.stopPropagation(); setSelector(toggleTableCollapsed(selector, data.name, false)); }}
-        style={{ background: 'none', border: 'none', color: 'var(--ink-3)', cursor: 'pointer', fontSize: 12, padding: 2 }}
       >
         ▸
       </button>

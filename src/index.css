@@ -166,3 +166,20 @@ body {
 .cm-sel-glob { color: var(--fact); }
 .cm-sel-identifier { color: var(--ink); }
 .cm-sel-invalid { color: #ff6b6b; text-decoration: underline wavy #ff6b6b; }
+
+.node-action-btn {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 6px;
+  background: none;
+  border: none;
+  color: var(--ink-3);
+  cursor: pointer;
+  font-size: 12px;
+  flex-shrink: 0;
+}
+.node-action-btn:hover {
+  background: rgba(255, 255, 255, .07);
+}
