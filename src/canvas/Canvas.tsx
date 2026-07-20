@@ -7,11 +7,13 @@ import { resolveSelection } from '@/selection/resolveSelection';
 import { selectionToFlow, type FlowNode } from '@/canvas/selectionToFlow';
 import { layoutGraph } from '@/canvas/layout';
 import { TableNode } from '@/canvas/TableNode';
+import { TableNodeCompact } from '@/canvas/TableNodeCompact';
 import { GroupNode } from '@/canvas/GroupNode';
 import { HopStepper } from '@/app/HopStepper';
 import { useAppStore } from '@/app/store';
+import { expandGroup, collapseGroup, expandedGroupTokens } from '@/app/selectorEdit';
 
-const nodeTypes = { table: TableNode, group: GroupNode };
+const nodeTypes = { table: TableNode, tableCompact: TableNodeCompact, group: GroupNode };
 
 export function Canvas({
   model,
@@ -54,7 +56,7 @@ export function Canvas({
     return () => { cancelled = true; };
   }, [model, selector, adjacency]);
 
-  const tableCount = nodes.filter((n) => n.type === 'table').length;
+  const tableCount = nodes.filter((n) => n.type === 'table' || n.type === 'tableCompact').length;
   const edgeCount = edges.length;
 
   return (
@@ -97,6 +99,20 @@ export function Canvas({
           <b style={{ color: 'var(--dim)', fontWeight: 600 }}>{edgeCount}</b> refs visible
         </div>
         <HopStepper />
+        {expandedGroupTokens(selector).map(({ token, name }) => (
+          <button
+            key={token}
+            onClick={() => onSelectorChange?.(collapseGroup(selector, name))}
+            title={`Collapse ${name} back to a super-node`}
+            style={{
+              fontFamily: '"Spline Sans Mono", monospace', fontSize: 11, color: 'var(--ink-2)',
+              background: 'rgba(13,16,24,.7)', border: '1px solid var(--line)', padding: '5px 9px',
+              borderRadius: 7, cursor: 'pointer', backdropFilter: 'blur(6px)',
+            }}
+          >
+            ▾ {name}
+          </button>
+        ))}
         {pathMode && (
           <div
             style={{
@@ -133,7 +149,7 @@ export function Canvas({
             onTableFocus?.(seg);
             onTableSelect?.(name);
           } else if (node.type === 'group') {
-            onSelectorChange?.(`group:${(node.data as { name: string }).name}`);
+            onSelectorChange?.(expandGroup(selector, (node.data as { name: string }).name));
           }
         }}
       >

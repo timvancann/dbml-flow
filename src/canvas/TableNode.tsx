@@ -1,10 +1,14 @@
 // src/canvas/TableNode.tsx
 import { Handle, Position, type NodeProps } from '@xyflow/react';
 import type { TableNodeData } from '@/canvas/selectionToFlow';
+import { useAppStore } from '@/app/store';
+import { toggleTableCollapsed } from '@/app/selectorEdit';
 
 export function TableNode({ data }: NodeProps & { data: TableNodeData }) {
   const accent = data.kind === 'fact' ? 'var(--fact)' : data.kind === 'dim' ? 'var(--dim)' : 'var(--line-2)';
   const accentDim = data.kind === 'fact' ? 'var(--fact-dim)' : 'var(--dim-dim)';
+  const selector = useAppStore((s) => s.selector);
+  const setSelector = useAppStore((s) => s.setSelector);
 
   return (
     <div
@@ -34,6 +38,13 @@ export function TableNode({ data }: NodeProps & { data: TableNodeData }) {
         <span className="ml-auto text-[9.5px] tracking-[.14em] uppercase" style={{ color: accent }}>
           {data.kind}
         </span>
+        <button
+          title="Collapse to compact card"
+          onClick={(e) => { e.stopPropagation(); setSelector(toggleTableCollapsed(selector, data.name, true)); }}
+          style={{ background: 'none', border: 'none', color: 'var(--ink-3)', cursor: 'pointer', fontSize: 12, padding: 2, flexShrink: 0 }}
+        >
+          ▾
+        </button>
       </div>
 
       <div className="p-[5px] flex flex-col">
