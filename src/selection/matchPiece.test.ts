@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { loadModel } from '@/model/loadModel';
-import { matchPiece } from '@/selection/matchPiece';
+import { matchPiece, matchGroups } from '@/selection/matchPiece';
 
 const model = loadModel(readFileSync('src/model/__fixtures__/grouped.dbml', 'utf8'));
 const FULL = 'model.shop.f_order';
@@ -37,5 +37,29 @@ describe('matchPiece', () => {
 
   it('returns empty set for an unknown piece', () => {
     expect(matchPiece(model, 'does_not_exist').size).toBe(0);
+  });
+});
+
+describe('matchGroups', () => {
+  it('matches an exact group name', () => {
+    expect(matchGroups(model, 'group:shop.sales')).toEqual(
+      new Set(['shop.sales'])
+    );
+  });
+
+  it('matches group by last segment', () => {
+    expect(matchGroups(model, 'group:sales')).toEqual(
+      new Set(['shop.sales'])
+    );
+  });
+
+  it('matches group globs', () => {
+    expect(matchGroups(model, 'g:*')).toEqual(
+      new Set(['shop.sales', 'shop.inventory', 'shop.people'])
+    );
+  });
+
+  it('returns empty for table pieces', () => {
+    expect(matchGroups(model, 'd_customer')).toEqual(new Set());
   });
 });

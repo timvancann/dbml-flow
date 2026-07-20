@@ -48,3 +48,19 @@ export function matchPiece(model: Model, piece: string): Set<string> {
   }
   return result;
 }
+
+export function matchGroups(model: Model, piece: string): Set<string> {
+  const result = new Set<string>();
+  if (piece.startsWith('group:')) {
+    const name = piece.slice('group:'.length);
+    for (const group of model.groups.values()) {
+      if (group.name === name || group.name.endsWith('.' + name)) result.add(group.name);
+    }
+  } else if (piece.startsWith('g:')) {
+    const re = globToRegExp(piece.slice('g:'.length));
+    for (const group of model.groups.values()) {
+      if (re.test(group.name)) result.add(group.name);
+    }
+  }
+  return result;
+}
