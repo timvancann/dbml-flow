@@ -25,6 +25,8 @@ export function LeftRail() {
   const model = useAppStore((s) => s.model);
   const setSelector = useAppStore((s) => s.setSelector);
   const setSelectedTable = useAppStore((s) => s.setSelectedTable);
+  const pathMode = useAppStore((s) => s.pathMode);
+  const pathStart = useAppStore((s) => s.pathStart);
   const [query, setQuery] = useState('');
   const [segment, setSegment] = useState<Segment>('all');
   const parentRef = useRef<HTMLDivElement>(null);
@@ -208,6 +210,22 @@ export function LeftRail() {
                   {kind === 'fact' ? 'f' : kind === 'dim' ? 'd' : '·'}
                 </span>
                 <span className="truncate">{name.split('.').pop()}</span>
+                {pathMode && pathStart === name && (
+                  <span
+                    className="ml-auto"
+                    style={{
+                      fontFamily: '"Spline Sans Mono", monospace',
+                      fontSize: 10,
+                      color: 'var(--accent)',
+                      border: '1px solid rgba(139,156,255,.4)',
+                      borderRadius: 5,
+                      padding: '1px 5px',
+                      flexShrink: 0,
+                    }}
+                  >
+                    start
+                  </span>
+                )}
               </button>
             );
           })}

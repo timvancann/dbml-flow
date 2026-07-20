@@ -189,7 +189,7 @@ export function Canvas({
               backdropFilter: 'blur(6px)',
             }}
           >
-            {pathStart ? 'Pick target table' : 'Pick start table'}
+            {pathStart ? `start: ${pathStart.split('.').pop()}, pick target table` : 'Pick start table'}
           </div>
         )}
       </div>
