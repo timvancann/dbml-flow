@@ -42,7 +42,7 @@ export interface GroupNodeData {
 
 export interface FlowNode {
   id: string;
-  type: 'table' | 'tableCompact' | 'group';
+  type: 'table' | 'tableCompact' | 'superGroup';
   position: { x: number; y: number };
   data: TableNodeData | CompactTableNodeData | GroupNodeData;
   width: number;
@@ -160,7 +160,7 @@ export function selectionToFlow(
     ).length;
     nodes.push({
       id: groupName,
-      type: 'group',
+      type: 'superGroup',
       position: { x: 0, y: 0 },
       width: GROUP_W,
       height: GROUP_H,

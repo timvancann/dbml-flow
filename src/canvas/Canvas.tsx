@@ -28,7 +28,7 @@ const hudButtonStyle: CSSProperties = {
   backdropFilter: 'blur(6px)',
 };
 
-const nodeTypes = { table: TableNode, tableCompact: TableNodeCompact, group: GroupNode };
+const nodeTypes = { table: TableNode, tableCompact: TableNodeCompact, superGroup: GroupNode };
 const edgeTypes = { ref: RefEdge };
 
 export function Canvas({
@@ -271,7 +271,7 @@ export function Canvas({
             const seg = name.split('.').pop() ?? name;
             onTableFocus?.(seg);
             onTableSelect?.(name);
-          } else if (node.type === 'group') {
+          } else if (node.type === 'superGroup') {
             onSelectorChange?.(expandGroup(selector, (node.data as { name: string }).name));
           }
         }}
@@ -284,7 +284,7 @@ export function Canvas({
             zoomable
             style={{ background: 'var(--bg-2)', border: '1px solid var(--line)', borderRadius: 8 }}
             maskColor="rgba(13,16,24,.75)"
-            nodeColor={(n) => (n.type === 'group' ? 'var(--panel-2)' : 'var(--line-2)')}
+            nodeColor={(n) => (n.type === 'superGroup' ? 'var(--panel-2)' : 'var(--line-2)')}
             nodeStrokeColor="var(--line)"
           />
         )}

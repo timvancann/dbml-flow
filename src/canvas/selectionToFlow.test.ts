@@ -183,7 +183,7 @@ describe('mixed detail rendering', () => {
   it('super-groups render as group nodes and intra-group refs are dropped', () => {
     const sel = resolveSelection(model, '');
     const { nodes, edges } = selectionToFlow(model, sel);
-    expect(nodes.every((n) => n.type === 'group')).toBe(true);
+    expect(nodes.every((n) => n.type === 'superGroup')).toBe(true);
     for (const e of edges) expect(e.source).not.toBe(e.target);
   });
 
