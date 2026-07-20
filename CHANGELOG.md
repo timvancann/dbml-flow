@@ -1,3 +1,16 @@
+## v0.2.0 (2026-07-20)
+
+### Feat
+
+- fit-on-change and edge hover tooltips
+- hover highlighting dims unrelated nodes and edges
+- larger collapse hit targets and double-click toggle
+- collapse-all and expand-all HUD actions
+
+### Fix
+
+- retire built-in group node type collision
+
 ## v0.1.0 (2026-07-20)
 
 ### Feat
