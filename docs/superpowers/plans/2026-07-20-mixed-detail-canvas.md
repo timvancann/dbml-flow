@@ -1562,3 +1562,12 @@ git commit -m "docs: document '.' collapse modifier and new canvas features"
 - [ ] Step 1: Implement in SelectionBar.tsx.
 - [ ] Step 2: `bunx vitest run` + `bunx tsc --noEmit -p tsconfig.app.json` clean; visual check (type selector, click x, editor empties, overview returns).
 - [ ] Step 3: Commit `feat: clear button on the selector input`.
+
+### Task 16: Cmd-K selects the 1-hop neighborhood (added post-planning at user request)
+
+**Files:** Modify `src/app/QuickJump.tsx`.
+
+**Context:** Picking a table in the Cmd-K modal currently sets the selector to the bare segment. It should set `~1<seg>` (the table plus its undirected 1-hop neighbors), matching the click-to-focus idiom. Apply to both Enter (replace: selector becomes `~1seg`) and Shift-Enter (union: append `~1seg`). Update the input placeholder if it names the behavior.
+
+- [ ] Step 1: Change `pick` to use `` `~1${seg}` ``; `bunx vitest run` + tsc clean; visual check.
+- [ ] Step 2: Commit `feat: cmd-k jumps to the 1-hop neighborhood of a table`.
