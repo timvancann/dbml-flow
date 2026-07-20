@@ -48,10 +48,11 @@ export function Canvas({
   const [nodes, setNodes] = useState<Node[]>([]);
   const [edges, setEdges] = useState<Edge[]>([]);
   const [hoveredNode, setHoveredNode] = useState<string | null>(null);
+  const [hoveredEdge, setHoveredEdge] = useState<string | null>(null);
   const pathMode = useAppStore((s) => s.pathMode);
   const pathStart = useAppStore((s) => s.pathStart);
   const pickPathTable = useAppStore((s) => s.pickPathTable);
-  const { getNodes } = useReactFlow();
+  const { getNodes, fitView } = useReactFlow();
   const [copyState, setCopyState] = useState<'idle' | 'success' | 'error'>('idle');
   const [pngExportState, setPngExportState] = useState<'idle' | 'error'>('idle');
 
@@ -100,6 +101,7 @@ export function Canvas({
   useEffect(() => {
     let cancelled = false;
     setHoveredNode(null);
+    setHoveredEdge(null);
 
     const raw = selectionToFlow(model, resolveSelection(model, selector, adjacency));
 
@@ -116,9 +118,16 @@ export function Canvas({
           style: { stroke: 'var(--edge)', strokeWidth: 1.4, opacity: 0.5 },
         })) as Edge[],
       );
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          if (cancelled) return;
+          fitView({ padding: 0.15, duration: 300 });
+        });
+      });
     });
 
     return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [model, selector, adjacency]);
 
   const tableCount = nodes.filter((n) => n.type === 'table' || n.type === 'tableCompact').length;
@@ -144,15 +153,18 @@ export function Canvas({
   }, [nodes, connectedNodeIds]);
 
   const displayEdges = useMemo(() => {
-    if (!connectedNodeIds) return edges;
     return edges.map((e) => {
+      const hovered = e.id === hoveredEdge;
+      const data = { ...e.data, hovered };
+      if (!connectedNodeIds) return { ...e, data };
       const connected = e.source === hoveredNode || e.target === hoveredNode;
       return {
         ...e,
+        data,
         style: { ...e.style, opacity: connected ? 1 : 0.06 },
       };
     });
-  }, [edges, connectedNodeIds, hoveredNode]);
+  }, [edges, connectedNodeIds, hoveredNode, hoveredEdge]);
 
   return (
     <div className="dbml-canvas" style={{ width: '100%', height: '100%', position: 'relative' }}>
@@ -259,6 +271,8 @@ export function Canvas({
         zoomOnDoubleClick={false}
         onNodeMouseEnter={(_, node) => setHoveredNode(node.id)}
         onNodeMouseLeave={() => setHoveredNode(null)}
+        onEdgeMouseEnter={(_, edge) => setHoveredEdge(edge.id)}
+        onEdgeMouseLeave={() => setHoveredEdge(null)}
         onNodeClick={(_, node) => {
           if (pathMode) {
             if (node.type === 'table' || node.type === 'tableCompact') {

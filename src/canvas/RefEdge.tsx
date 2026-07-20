@@ -11,8 +11,11 @@ export function RefEdge(props: EdgeProps) {
   const { sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition, data, style, markerEnd } = props;
   const [path, labelX, labelY] = getBezierPath({ sourceX, sourceY, sourcePosition, targetX, targetY, targetPosition });
   const count = (data as { count?: number })?.count ?? 1;
+  const fromCol = (data as { fromColumn?: string })?.fromColumn;
+  const toCol = (data as { toColumn?: string })?.toColumn;
   const fromCard = (data as { fromCardinality?: string })?.fromCardinality;
   const toCard = (data as { toCardinality?: string })?.toCardinality;
+  const hovered = (data as { hovered?: boolean })?.hovered;
 
   return (
     <>
@@ -21,6 +24,11 @@ export function RefEdge(props: EdgeProps) {
         {count > 1 && (
           <div style={{ ...labelStyle, transform: `translate(-50%,-50%) translate(${labelX}px,${labelY}px)` }}>
             {count}
+          </div>
+        )}
+        {hovered && count === 1 && fromCol && (
+          <div style={{ ...labelStyle, fontSize: 10, transform: `translate(-50%,-50%) translate(${labelX}px,${labelY}px)` }}>
+            {`${fromCol} -> ${toCol}`}
           </div>
         )}
         {count === 1 && fromCard && (
