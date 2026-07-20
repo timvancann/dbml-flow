@@ -1509,3 +1509,28 @@ Manual sweep in `bun run dev`: overview → expand group → collapse table → 
 git add README.md
 git commit -m "docs: document '.' collapse modifier and new canvas features"
 ```
+
+---
+
+### Task 13: Conventional-commit release automation (added post-planning at user request)
+
+**Files:**
+- Create: `.cz.toml`, `.pre-commit-config.yaml`, `.github/workflows/release.yml`, `.github/workflows/commit-lint.yml`
+- Modify: `.github/workflows/docker.yml` (extract the build job into a reusable `workflow_call` form OR leave as-is; see below)
+
+**Context:** `docker.yml` ALREADY builds `:latest` on main pushes and semver tags on `v*` tag pushes (docker/metadata-action). This task adds the automatic tag cutting from conventional commits, modeled on nfi-schuifmaat (auto-bump on main push) with the GitHub-Actions mechanics from mendel/studio (commitizen `version_provider = "scm"`, atomic push, GHCR). Critical constraint from studio: tags pushed with the default `GITHUB_TOKEN` do NOT trigger other workflows, so `docker.yml`'s `tags: ['v*']` trigger will not fire for tags the release workflow pushes — the release workflow must build the semver image itself in the same run.
+
+**Interfaces:**
+- `.cz.toml` (commitizen): `name = "cz_conventional_commits"`, `version_scheme = "semver"`, `version_provider = "scm"` (git tags are the source of truth; package.json stays at 0.0.0), `tag_format = "v$version"`, `annotated_tag = true`, `update_changelog_on_bump = true`, `changelog_incremental = true`, `major_version_zero = true`, `bump_message = "chore(release): $current_version -> $new_version [skip ci]"`.
+- `.pre-commit-config.yaml`: official commitizen hook at the `commit-msg` stage (repo `https://github.com/commitizen-tools/commitizen`, rev `v4.16.4`, hook id `commitizen`, `stages: [commit-msg]`), plus `pre-commit-hooks` basics (check-yaml, end-of-file-fixer, trailing-whitespace, check-merge-conflict).
+- `.github/workflows/commit-lint.yml`: on push to main + PRs; `pipx install commitizen`; `cz check --rev-range` over `last v* tag..HEAD` (push) or `base..head` (PR) — copy the range logic from studio's commit-lint.yml as reported.
+- `.github/workflows/release.yml`: on `push: branches: [main]`, `permissions: contents: write, packages: write`, `concurrency: release` (no cancel). Steps: checkout `fetch-depth: 0`; git identity github-actions[bot]; `pipx install commitizen`; run `cz bump --yes --changelog`, treating exit codes 3/21 (no releasable commits) as a clean no-op (`released=false`); on success capture `TAG=$(git describe --tags --abbrev=0)`; `git push --atomic origin HEAD:main "refs/tags/${TAG}"` (explicit atomic push, never `--follow-tags`); then, gated on `released == true`, build and push the semver Docker image in the same run: checkout `ref: ${TAG}`, buildx, GHCR login with `GITHUB_TOKEN`, metadata-action with `type=semver` patterns pinned to the tag, build-push with gha cache — mirroring docker.yml's existing steps. `[skip ci]` in the bump message stops the bump commit from re-triggering workflows.
+- `docker.yml` keeps its main-push `:latest` build unchanged. Its `tags: ['v*']` trigger stays for manually pushed tags; add a comment that automated tags are built by release.yml (token-pushed tags cannot trigger this workflow).
+
+**Verification:** `bunx action-validator` is NOT in the repo; validate YAML by `bunx yaml-lint` or careful review, plus `pre-commit run --all-files` if pre-commit is installed locally (skip gracefully if not). Real verification happens on the next push to origin main: commit-lint and release workflows must go green, a `feat:`/`fix:` commit must cut a tag and publish both `:latest` (docker.yml) and `vX.Y.Z` (release.yml) images. The implementer cannot verify the remote side; report it as unverifiable and list what to watch on the Actions tab.
+
+**Note:** local git history contains non-conventional commits from before this task; the commit-lint push range starts at the last `v*` tag, so create an initial tag `v0.1.0` on the release commit of this task (manually, pushed by the user or noted as a follow-up) OR let the first `cz bump` derive from the full history and accept a larger changelog. Prefer: note in the report that the first automated release will sweep all history into the changelog; that is acceptable.
+
+- [ ] Step 1: Write `.cz.toml`, `.pre-commit-config.yaml`, `commit-lint.yml`, `release.yml`; adjust `docker.yml` comment.
+- [ ] Step 2: Validate YAML locally; run `pre-commit run --all-files` if available.
+- [ ] Step 3: Commit with a conventional message: `ci: conventional-commit release automation (auto tag bump, semver docker images)`.
