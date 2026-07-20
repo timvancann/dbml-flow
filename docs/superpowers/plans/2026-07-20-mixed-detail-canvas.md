@@ -1571,3 +1571,43 @@ git commit -m "docs: document '.' collapse modifier and new canvas features"
 
 - [ ] Step 1: Change `pick` to use `` `~1${seg}` ``; `bunx vitest run` + tsc clean; visual check.
 - [ ] Step 2: Commit `feat: cmd-k jumps to the 1-hop neighborhood of a table`.
+
+---
+
+### Task 17: Collapse all / expand all (added post-planning at user request)
+
+**Files:** Modify `src/app/selectorEdit.ts`, `src/app/selectorEdit.test.ts`, `src/canvas/Canvas.tsx`.
+
+Add to selectorEdit.ts (TDD):
+- `collapseAll(selector)`: dot every undotted include token. Skip exclusion tokens (`!x`), the `--exclude` keyword AND its following argument token. Empty selector returns `.g:*`. Already-dotted tokens unchanged. Example: `group:sales ~2f_order !d_date` → `.group:sales .~2f_order !d_date`.
+- `expandAll(selector)`: strip one leading dot from every include token (same skips). Empty selector returns `g:*` (the whole schema expanded; that is the intent).
+Canvas HUD: two compact buttons in the right HUD cluster (next to Copy DBML/PNG, same hudButtonStyle): "Collapse all", "Expand all", calling onSelectorChange with the rewrites.
+
+- [ ] TDD the two functions (tests incl. exclusion skipping, --exclude arg skipping, empty selector, idempotence); wire HUD buttons; `bunx vitest run` + tsc clean; commit `feat: collapse-all and expand-all HUD actions`.
+
+### Task 18: Bigger collapse hit targets (added post-planning at user request)
+
+**Files:** Modify `src/canvas/TableNode.tsx`, `src/canvas/TableNodeCompact.tsx`, `src/canvas/GroupNode.tsx`, `src/canvas/Canvas.tsx`.
+
+- Chevron buttons (TableNode ▾, TableNodeCompact ▸, GroupNode ⤢): 26x26px hit area (`display:grid; placeItems:center; width:26; height:26; borderRadius:6`), hover background `rgba(255,255,255,.07)` (via onMouseEnter/Leave state or a shared CSS class in index.css, e.g. `.node-action-btn:hover`— a class is cleaner, add it to index.css and use className).
+- Double-click toggles: TableNode header div onDoubleClick collapses that table; TableNodeCompact card onDoubleClick expands. Both stopPropagation, `userSelect: 'none'` on the target. Add `zoomOnDoubleClick={false}` to `<ReactFlow>` so double-click does not also zoom.
+
+- [ ] Implement; `bunx vitest run` + tsc clean; visual check; commit `feat: larger collapse hit targets and double-click toggle`.
+
+### Task 19: Hover highlighting (added post-planning at user request)
+
+**Files:** Modify `src/canvas/Canvas.tsx`.
+
+State `hoveredNode: string | null` set by ReactFlow `onNodeMouseEnter`/`onNodeMouseLeave`. When set, compute the connected set (hovered node + every node sharing an edge with it, from the current edges array). Derive display arrays with useMemo: unrelated nodes get `style: { opacity: 0.18, transition: 'opacity 120ms' }` on the node (wrapper style), unrelated edges `opacity: 0.06`; connected edges get full opacity and `stroke: 'var(--accent)'` optionally kept subtle (keep existing stroke, just full opacity). No model changes.
+
+- [ ] Implement; ensure hover state resets on selector change; `bunx vitest run` + tsc clean; visual check; commit `feat: hover highlighting dims unrelated nodes and edges`.
+
+### Task 20: Fit-on-change, edge tooltips, ghost fix (added post-planning at user request)
+
+**Files:** Modify `src/canvas/Canvas.tsx`, `src/canvas/RefEdge.tsx`, `src/canvas/selectionToFlow.ts`, tests asserting node type 'group'.
+
+1. **Ghost fix (root-caused)**: node type `'group'` collides with React Flow's BUILT-IN group node type; the wrapper class `react-flow__node-group` carries default background/border/shadow (the gray ghosts). Rename our type to `'superGroup'` everywhere: selectionToFlow type union + node creation, Canvas nodeTypes/click handler/minimap nodeColor, and every test asserting `type === 'group'`. Edge ids and data unchanged.
+2. **Re-fit on selector change**: in Canvas's layout effect, after setNodes/setEdges, call `fitView({ padding: 0.15, duration: 300 })` from `useReactFlow()` inside a requestAnimationFrame so it runs after the new nodes render. Only when the selector actually changed (not on hover-driven rerenders — the effect deps already ensure this).
+3. **Edge tooltips**: Canvas `onEdgeMouseEnter`/`onEdgeMouseLeave` set `hoveredEdge: string | null`; pass `data: { ...e.data, hovered: e.id === hoveredEdge }` when mapping edges. In RefEdge, when `data.hovered` and `count === 1` and fromColumn present, render an EdgeLabelRenderer div at (labelX, labelY) showing `fromColumn -> toColumn` (ASCII arrow), Spline Sans Mono 10px, same chip styling as the count chip. Merged/group-anchored edges (no column data): show `${count} refs` on hover only if count > 1 (the static chip can then become hover-only OR stay; keep the static count chip as is and skip the tooltip for merged edges).
+
+- [ ] Implement; update tests; `bunx vitest run` + tsc clean; visual check incl. ghosts gone on overview; commit `fix: retire built-in group node type collision; feat: fit-on-change and edge tooltips` (split into two commits: the rename fix, then the fit+tooltip feat).
