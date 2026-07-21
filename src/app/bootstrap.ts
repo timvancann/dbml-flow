@@ -44,8 +44,8 @@ async function loadSiblingLineage(dbmlUrl: string): Promise<void> {
     const json: unknown = await res.json();
     const model = useAppStore.getState().model;
     if (!model) return;
-    const { edges } = parseDbtManifest(json, model);
-    useAppStore.getState().setLineage(edges);
+    const { edges, external } = parseDbtManifest(json, model);
+    useAppStore.getState().setLineage({ edges, external });
   } catch {
     // no dbt manifest for this demo database; nothing to overlay
   }

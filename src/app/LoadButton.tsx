@@ -48,13 +48,13 @@ export function LoadButton() {
       setLoadError('Load a database before uploading a dbt manifest');
       return;
     }
-    const { edges, matchedTables } = parseDbtManifest(json, model);
+    const { edges, external, matchedTables } = parseDbtManifest(json, model);
     if (matchedTables.size === 0) {
       setLoadError('dbt manifest matched no tables in the current model');
       return;
     }
     setLoadError(null);
-    setLineage(edges);
+    setLineage({ edges, external });
   }
 
   async function handleChange(e: React.ChangeEvent<HTMLInputElement>) {

@@ -150,8 +150,7 @@
         "nodes": [
           "model.shop.stg_inventory",
           "model.shop.d_product",
-          "model.shop.d_warehouse",
-          "model.shop.f_shipment"
+          "model.shop.d_warehouse"
         ]
       }
     },
@@ -164,8 +163,7 @@
         "nodes": [
           "model.shop.stg_shipments",
           "model.shop.d_customer",
-          "model.shop.d_product",
-          "model.shop.f_order"
+          "model.shop.d_product"
         ]
       }
     },
@@ -177,8 +175,7 @@
       "depends_on": {
         "nodes": [
           "model.shop.stg_employees",
-          "model.shop.d_employee",
-          "model.shop.f_order"
+          "model.shop.d_employee"
         ]
       }
     }
@@ -277,19 +274,16 @@
     "model.shop.f_stock": [
       "model.shop.stg_inventory",
       "model.shop.d_product",
-      "model.shop.d_warehouse",
-      "model.shop.f_shipment"
+      "model.shop.d_warehouse"
     ],
     "model.shop.f_shipment": [
       "model.shop.stg_shipments",
       "model.shop.d_customer",
-      "model.shop.d_product",
-      "model.shop.f_order"
+      "model.shop.d_product"
     ],
     "model.shop.f_sales_rep": [
       "model.shop.stg_employees",
-      "model.shop.d_employee",
-      "model.shop.f_order"
+      "model.shop.d_employee"
     ]
   },
   "child_map": {
@@ -352,14 +346,9 @@
     "model.shop.d_warehouse": [
       "model.shop.f_stock"
     ],
-    "model.shop.f_order": [
-      "model.shop.f_shipment",
-      "model.shop.f_sales_rep"
-    ],
+    "model.shop.f_order": [],
     "model.shop.f_stock": [],
-    "model.shop.f_shipment": [
-      "model.shop.f_stock"
-    ],
+    "model.shop.f_shipment": [],
     "model.shop.f_sales_rep": []
   }
 }

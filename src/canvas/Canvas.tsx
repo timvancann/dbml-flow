@@ -10,6 +10,7 @@ import { layoutGraph } from '@/canvas/layout';
 import { TableNode } from '@/canvas/TableNode';
 import { TableNodeCompact } from '@/canvas/TableNodeCompact';
 import { GroupNode } from '@/canvas/GroupNode';
+import { PhantomNode } from '@/canvas/PhantomNode';
 import { RefEdge } from '@/canvas/RefEdge';
 import { HopStepper } from '@/app/HopStepper';
 import { useAppStore } from '@/app/store';
@@ -28,7 +29,7 @@ const hudButtonStyle: CSSProperties = {
   backdropFilter: 'blur(6px)',
 };
 
-const nodeTypes = { table: TableNode, tableCompact: TableNodeCompact, superGroup: GroupNode };
+const nodeTypes = { table: TableNode, tableCompact: TableNodeCompact, superGroup: GroupNode, phantom: PhantomNode };
 const edgeTypes = { ref: RefEdge };
 
 export function Canvas({

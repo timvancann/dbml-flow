@@ -1,13 +1,15 @@
-import type { LineageEdge, Model } from '@/model/types';
+import type { LineageEdge, LineageExternalEdge, Model } from '@/model/types';
 
 interface DbtNodeMeta {
   name?: string;
   schema?: string;
   alias?: string;
+  resource_type?: string;
 }
 
 export interface ParsedLineage {
   edges: LineageEdge[];
+  external: LineageExternalEdge[];
   matchedTables: Set<string>;
   unmatchedNodes: string[];
 }
@@ -35,7 +37,18 @@ function asParentMap(v: unknown): Record<string, string[]> {
 export function parseDbtManifest(json: unknown, model: Model): ParsedLineage {
   const manifest = isRecord(json) ? json : {};
   const parentMap = asParentMap(manifest.parent_map);
-  const nodeMeta = { ...asMetaRecord(manifest.nodes), ...asMetaRecord(manifest.sources) };
+  const nodesMeta = asMetaRecord(manifest.nodes);
+  const sourcesMeta = asMetaRecord(manifest.sources);
+  const nodeMeta = { ...nodesMeta, ...sourcesMeta };
+
+  // resourceType for an external (unmatched) parent id: look up in nodes,
+  // then sources, fallback 'node'.
+  function resourceTypeOf(id: string): string {
+    const n = nodesMeta[id];
+    if (n) return n.resource_type === 'seed' ? 'seed' : 'model';
+    if (sourcesMeta[id]) return 'source';
+    return 'node';
+  }
 
   const byLastSegment = new Map<string, string[]>();
   const bySchemaName = new Map<string, string[]>();
@@ -82,20 +95,32 @@ export function parseDbtManifest(json: unknown, model: Model): ParsedLineage {
 
   const edges: LineageEdge[] = [];
   const seen = new Set<string>();
+  const external: LineageExternalEdge[] = [];
+  const externalSeen = new Set<string>();
   for (const [id, parents] of Object.entries(parentMap)) {
     const toTable = resolve(id);
+    if (!toTable) continue;
     for (const parentId of parents) {
       const fromTable = resolve(parentId);
-      if (!toTable || !fromTable) continue;
-      const key = `${fromTable}->${toTable}`;
-      if (seen.has(key)) continue;
-      seen.add(key);
-      edges.push({ fromTable, toTable });
+      if (fromTable) {
+        const key = `${fromTable}->${toTable}`;
+        if (seen.has(key)) continue;
+        seen.add(key);
+        edges.push({ fromTable, toTable });
+      } else {
+        const key = `${parentId}->${toTable}`;
+        if (externalSeen.has(key)) continue;
+        externalSeen.add(key);
+        const meta = nodeMeta[parentId];
+        const fromLabel = meta?.name ?? parentId.split('.').pop() ?? parentId;
+        external.push({ fromNode: parentId, fromLabel, resourceType: resourceTypeOf(parentId), toTable });
+      }
     }
   }
 
   return {
     edges,
+    external,
     matchedTables: new Set(resolved.values()),
     unmatchedNodes: [...unresolved].sort(),
   };

@@ -63,16 +63,38 @@ describe('parseDbtManifest', () => {
     expect(has('d_customer', 'f_shipment')).toBe(true);
     expect(has('d_product', 'f_shipment')).toBe(true);
     expect(has('d_employee', 'f_sales_rep')).toBe(true);
-    expect(edges.length).toBe(11);
+    expect(edges.length).toBe(8);
   });
 
-  it('keeps fact-to-fact lineage that has no FK counterpart', () => {
+  it('drops the fabricated fact-to-fact deps', () => {
     const { edges } = parseDbtManifest(manifest, model);
     const has = (from: string, to: string) =>
       edges.some((e) => e.fromTable === `model.shop.${from}` && e.toTable === `model.shop.${to}`);
-    expect(has('f_order', 'f_shipment')).toBe(true);
-    expect(has('f_order', 'f_sales_rep')).toBe(true);
-    expect(has('f_shipment', 'f_stock')).toBe(true);
+    expect(has('f_order', 'f_shipment')).toBe(false);
+    expect(has('f_order', 'f_sales_rep')).toBe(false);
+    expect(has('f_shipment', 'f_stock')).toBe(false);
+  });
+
+  it('extracts 1-hop external parents (staging models) for matched tables', () => {
+    const { external } = parseDbtManifest(manifest, model);
+    const orderParent = external.find(
+      (e) => e.toTable === 'model.shop.f_order' && e.fromNode === 'model.shop.stg_orders',
+    );
+    expect(orderParent).toBeDefined();
+    expect(orderParent!.fromLabel).toBe('stg_orders');
+    expect(orderParent!.resourceType).toBe('model');
+
+    const customerParent = external.find(
+      (e) => e.toTable === 'model.shop.d_customer' && e.fromNode === 'model.shop.stg_customers',
+    );
+    expect(customerParent).toBeDefined();
+    expect(customerParent!.resourceType).toBe('model');
+  });
+
+  it('does not surface sources as external parents of marts (staging sits between)', () => {
+    const { external } = parseDbtManifest(manifest, model);
+    const sourceAsExternal = external.some((e) => e.fromNode.startsWith('source.'));
+    expect(sourceAsExternal).toBe(false);
   });
 
   it('falls back to schema.name matching when node id does not exact-match a table', () => {
@@ -102,8 +124,9 @@ describe('parseDbtManifest', () => {
 
   it('reports unmatched nodes rather than throwing on malformed json', () => {
     expect(() => parseDbtManifest({ nonsense: true }, model)).not.toThrow();
-    const { edges, matchedTables, unmatchedNodes } = parseDbtManifest(null, model);
+    const { edges, external, matchedTables, unmatchedNodes } = parseDbtManifest(null, model);
     expect(edges).toEqual([]);
+    expect(external).toEqual([]);
     expect(matchedTables.size).toBe(0);
     expect(unmatchedNodes).toEqual([]);
   });

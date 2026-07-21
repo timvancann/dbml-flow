@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { loadModel } from '@/model/loadModel';
-import type { LineageEdge, Model } from '@/model/types';
+import type { Lineage, Model } from '@/model/types';
 import type { DbEntry } from '@/app/bakedManifest';
 
 export interface AppState {
@@ -12,7 +12,7 @@ export interface AppState {
   loadError: string | null;
   databases: DbEntry[] | null;
   activeDb: string | null;
-  lineage: LineageEdge[] | null;
+  lineage: Lineage | null;
   showLineage: boolean;
   setSelector: (s: string) => void;
   setSelectedTable: (t: string | null) => void;
@@ -23,7 +23,7 @@ export interface AppState {
   pickPathTable: (name: string) => void;
   setDatabases: (dbs: DbEntry[]) => void;
   setActiveDatabase: (id: string | null) => void;
-  setLineage: (edges: LineageEdge[]) => void;
+  setLineage: (lineage: Lineage) => void;
   setShowLineage: (on: boolean) => void;
   setLoadError: (err: string | null) => void;
 }

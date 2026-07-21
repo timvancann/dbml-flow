@@ -34,6 +34,20 @@ export interface LineageEdge {
   toTable: string;
 }
 
+// A 1-hop upstream parent of a matched table that has no dbml counterpart
+// (e.g. a staging model or source) — rendered as a phantom node.
+export interface LineageExternalEdge {
+  fromNode: string;
+  fromLabel: string;
+  resourceType: string;
+  toTable: string;
+}
+
+export interface Lineage {
+  edges: LineageEdge[];
+  external: LineageExternalEdge[];
+}
+
 export interface Model {
   tables: Map<string, Table>;
   refs: Ref[];

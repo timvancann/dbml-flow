@@ -58,9 +58,10 @@ describe('useAppStore', () => {
 
   it('setLineage turns showLineage on', () => {
     expect(useAppStore.getState().showLineage).toBe(false);
-    useAppStore.getState().setLineage([{ fromTable: 'a', toTable: 'b' }]);
+    const lineage = { edges: [{ fromTable: 'a', toTable: 'b' }], external: [] };
+    useAppStore.getState().setLineage(lineage);
     expect(useAppStore.getState().showLineage).toBe(true);
-    expect(useAppStore.getState().lineage).toEqual([{ fromTable: 'a', toTable: 'b' }]);
+    expect(useAppStore.getState().lineage).toEqual(lineage);
   });
 
   it('path mode: first pick sets start, second pick builds path selector', () => {
