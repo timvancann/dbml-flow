@@ -30,11 +30,16 @@ export async function fetchBakedDbml(): Promise<string | null> {
   return fetchDbml(BAKED_DBML_URL);
 }
 
-// Sibling dbt manifest for a baked/demo dbml file, e.g. `dbml/shop.dbml` ->
-// `dbml/shop.dbml.dbt-manifest.json`. 404 (nothing baked) is silently ignored.
+// Sibling dbt manifest for a `<name>.dbml` file, via basename swap:
+// `dbml/shop.dbml` -> `dbml/shop.manifest.json`.
+export function siblingManifestUrl(dbmlUrl: string): string {
+  return dbmlUrl.replace(/\.dbml$/i, '') + '.manifest.json';
+}
+
+// 404 (nothing baked) is silently ignored.
 async function loadSiblingLineage(dbmlUrl: string): Promise<void> {
   try {
-    const res = await fetch(`${dbmlUrl}.dbt-manifest.json`, { cache: 'no-store' });
+    const res = await fetch(siblingManifestUrl(dbmlUrl), { cache: 'no-store' });
     if (!res.ok) return;
     const json: unknown = await res.json();
     const model = useAppStore.getState().model;

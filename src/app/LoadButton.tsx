@@ -6,6 +6,21 @@ function looksLikeDbtManifest(v: unknown): v is { nodes: unknown; parent_map: un
   return !!v && typeof v === 'object' && 'nodes' in v && 'parent_map' in v;
 }
 
+// Pure ordering: at most one .dbml/.txt file (loaded first), followed by any
+// number of .json manifests (loaded against the freshly loaded model).
+export function orderSelectedFiles(files: File[]): {
+  dbmlFile: File | null;
+  jsonFiles: File[];
+  error: string | null;
+} {
+  const dbmlFiles = files.filter((f) => /\.(dbml|txt)$/i.test(f.name));
+  const jsonFiles = files.filter((f) => /\.json$/i.test(f.name));
+  if (dbmlFiles.length > 1) {
+    return { dbmlFile: null, jsonFiles: [], error: 'Select at most one .dbml file' };
+  }
+  return { dbmlFile: dbmlFiles[0] ?? null, jsonFiles, error: null };
+}
+
 export function LoadButton() {
   const loadDbmlSafe = useAppStore((s) => s.loadDbmlSafe);
   const setLineage = useAppStore((s) => s.setLineage);
@@ -42,20 +57,21 @@ export function LoadButton() {
     setLineage(edges);
   }
 
-  function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const isJson = file.name.toLowerCase().endsWith('.json');
-    const reader = new FileReader();
-    reader.onload = (evt) => {
-      const text = evt.target?.result;
-      if (typeof text !== 'string') return;
-      if (isJson) handleDbtManifest(text);
-      else loadDbmlSafe(text);
-    };
-    reader.readAsText(file);
-    // Reset so the same file can be re-picked
+  async function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const files = Array.from(e.target.files ?? []);
+    // Reset so the same file(s) can be re-picked
     e.target.value = '';
+    if (files.length === 0) return;
+
+    const { dbmlFile, jsonFiles, error } = orderSelectedFiles(files);
+    if (error) {
+      setLoadError(error);
+      return;
+    }
+    if (dbmlFile) loadDbmlSafe(await dbmlFile.text());
+    for (const jsonFile of jsonFiles) {
+      handleDbtManifest(await jsonFile.text());
+    }
   }
 
   return (
@@ -64,6 +80,7 @@ export function LoadButton() {
         ref={inputRef}
         type="file"
         accept=".dbml,.txt,.json"
+        multiple
         style={{ display: 'none' }}
         onChange={handleChange}
       />

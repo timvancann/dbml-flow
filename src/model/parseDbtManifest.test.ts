@@ -4,7 +4,7 @@ import { parseDbtManifest } from '@/model/parseDbtManifest';
 import type { Model } from '@/model/types';
 
 const model = loadModel(readFileSync('src/model/__fixtures__/grouped.dbml', 'utf8'));
-const manifest = JSON.parse(readFileSync('examples/shop.dbt-manifest.json', 'utf8'));
+const manifest = JSON.parse(readFileSync('examples/shop.manifest.json', 'utf8'));
 
 const ALL_TABLES = [
   'model.shop.f_order',

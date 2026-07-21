@@ -70,6 +70,8 @@ they connected?"
 - **Bring your own schema** — upload a `.dbml` file in-app, or bake one or more into the
   Docker image (below); with several baked, the app opens a picker to choose a database. The
   current database and selector persist in the URL, so a view is just a link you can share.
+  To pair a dbt lineage overlay with a database, name it `<name>.manifest.json` next to
+  `<name>.dbml`; both baked images and the file picker load the pair together.
 
 The bundled demo data is a small synthetic `shop` schema. No real data ships in the repo.
 
