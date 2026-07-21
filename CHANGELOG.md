@@ -1,3 +1,20 @@
+## v0.4.0 (2026-07-21)
+
+### Feat
+
+- lineage context scoped to selection roots
+- stg_orders as a real dbml table in the example (demos intra-dbml lineage and source phantoms)
+- phantom upstream nodes; realistic example lineage
+- paired-file convention name.dbml + name.manifest.json
+- fact-to-fact lineage in the example manifest (no FK counterparts)
+- stage demo databases for dev via the same script as deploy
+
+### Fix
+
+- legible lineage edges (stronger dashes, arrowheads) + example-files regression test
+- example lineage models a clean layered warehouse (no intra-dbml deps)
+- lineage is a table-level dotted overlay; dbml refs stay primary
+
 ## v0.3.0 (2026-07-21)
 
 ### Feat
