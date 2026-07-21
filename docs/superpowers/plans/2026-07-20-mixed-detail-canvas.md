@@ -1668,3 +1668,21 @@ State `hoveredNode: string | null` set by ReactFlow `onNodeMouseEnter`/`onNodeMo
 6. Acceptance: fresh `bun run dev` → app shows the database chooser (2 DBs); picking shop auto-loads lineage (dotted edges + `┄ lineage` chip present without any upload); pokemon works; `bunx vitest run` + tsc stay green.
 
 - [ ] Implement; verify per acceptance; commit `feat: stage demo databases for dev via the same script as deploy`. DO NOT PUSH.
+
+---
+
+### Task 24: Paired-file convention `<name>.dbml` + `<name>.manifest.json` (added post-planning at user request)
+
+**Files:** Modify `src/app/bootstrap.ts` (+tests asserting sibling naming), `scripts/stage-demo.sh`, `src/app/LoadButton.tsx`, `README.md`. Rename `examples/shop.dbt-manifest.json` → `examples/shop.manifest.json` (git mv; update every reference incl. tests that load it).
+
+**Convention (binding):** for a database file `<name>.dbml`, its dbt manifest is `<name>.manifest.json` (basename swap, NOT suffix append). The baked DB-list file `manifest.json` is unrelated and must remain untouched; a sibling derived from a real `<name>.dbml` can never collide with it.
+
+**Requirements:**
+1. bootstrap: sibling lineage URL becomes `file.replace(/\.dbml$/i, '') + '.manifest.json'` (e.g. `shop.dbml` → `shop.manifest.json`); applies to both the multi-db path and the legacy default.dbml path. Drop the old `.dbml.dbt-manifest.json` derivation entirely (prototype, no back-compat).
+2. stage-demo.sh: stage `examples/shop.manifest.json` → `TARGET/shop.manifest.json`.
+3. LoadButton: file input gains `multiple`; on change, process ALL selected files: `.dbml`/`.txt` first (load model; if more than one dbml, last wins with a loadError note is NOT needed — just take the first and error on extras: 'Select at most one .dbml file'), then `.json` manifests against the freshly loaded model. Selecting `shop.dbml` + `shop.manifest.json` together must yield model + lineage in one action. A lone `.json` still works against the current model as today.
+4. README: document the pairing convention in the bring-your-own-schema section (one or two sentences, no em-dashes): name the manifest `<name>.manifest.json` next to `<name>.dbml` and both load together (baked images and the file picker).
+5. Tests: update/extend bootstrap sibling-URL tests to the new naming; a LoadButton-level unit test is not required (no precedent for component tests) but the multi-file ordering logic, if extracted as a pure helper, gets a test.
+6. Acceptance: fresh `bun run dev` → shop auto-lineage still works via the new name; picker multi-select of examples/shop.dbml + examples/shop.manifest.json loads both at once; `bunx vitest run` + tsc green.
+
+- [ ] Implement; verify; commit `feat: paired-file convention name.dbml + name.manifest.json`. DO NOT PUSH.
