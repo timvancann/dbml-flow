@@ -1,6 +1,6 @@
 // src/canvas/Canvas.tsx
 import { useEffect, useMemo, useState, type CSSProperties } from 'react';
-import { ReactFlow, Background, Controls, ReactFlowProvider, useReactFlow, getNodesBounds, getViewportForBounds, MiniMap, type Node, type Edge } from '@xyflow/react';
+import { ReactFlow, Background, Controls, ReactFlowProvider, useReactFlow, getNodesBounds, getViewportForBounds, MiniMap, MarkerType, type Node, type Edge } from '@xyflow/react';
 import { toPng } from 'html-to-image';
 import { buildAdjacency } from '@/model/graph';
 import type { Model } from '@/model/types';
@@ -123,13 +123,16 @@ export function Canvas({
           targetHandle: e.targetHandle,
           type: 'ref',
           data: e.data,
+          ...(e.data.kind === 'lineage'
+            ? { markerEnd: { type: MarkerType.ArrowClosed, color: 'var(--dim)', width: 13, height: 13 } }
+            : {}),
           style:
             e.data.kind === 'lineage'
               ? {
                   stroke: 'var(--dim)',
-                  strokeWidth: 1.4,
-                  opacity: 0.7,
-                  strokeDasharray: '2 5',
+                  strokeWidth: 1.7,
+                  opacity: 0.9,
+                  strokeDasharray: '4 6',
                   strokeLinecap: 'round',
                 }
               : { stroke: 'var(--edge)', strokeWidth: 1.4, opacity: 0.5 },
