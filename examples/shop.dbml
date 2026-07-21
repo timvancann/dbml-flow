@@ -88,6 +88,21 @@ Table "model.shop.f_sales_rep" {
   Note: ""
 }
 //Refs (based on the DBT Relationship Tests)
+//--configured at schema: shop.staging
+Table "model.shop.stg_orders" {
+  "order_id" "integer"
+  "customer_id" "integer"
+  "product_id" "integer"
+  "employee_id" "integer"
+  "order_number" "text"
+  "order_status" "text"
+  "ordered_at" "timestamp"
+  "quantity" "integer"
+  "unit_price" "numeric"
+
+  Note: ""
+}
+
 Ref: "model.shop.f_order"."sk_customer" > "model.shop.d_customer"."sk_customer"
 Ref: "model.shop.f_order"."sk_product" > "model.shop.d_product"."sk_product"
 Ref: "model.shop.f_order"."sk_employee" > "model.shop.d_employee"."sk_employee"
@@ -111,4 +126,7 @@ TableGroup "shop.inventory" {
 TableGroup "shop.people" {
   "model.shop.d_employee"
   "model.shop.f_sales_rep"
+}
+TableGroup "shop.staging" {
+  "model.shop.stg_orders"
 }
