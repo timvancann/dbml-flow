@@ -82,6 +82,8 @@ bun install
 just dev          # or: bun run dev   → http://localhost:5173
 ```
 
+The dev server stages and serves the same bundled demo databases (and lineage) as the live demo.
+
 If you use `pre-commit`, install both hook types so commit-msg linting (commitizen)
 actually runs: `just hooks` (or `pre-commit install --hook-type pre-commit --hook-type
 commit-msg`).

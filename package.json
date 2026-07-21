@@ -4,6 +4,7 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
+    "predev": "bash scripts/stage-demo.sh public/dbml",
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",

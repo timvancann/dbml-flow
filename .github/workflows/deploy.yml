@@ -37,12 +37,7 @@ jobs:
       # Bake two demo databases into the Pages build only (the Docker image is
       # unaffected). With 2+ in the manifest, the live demo opens the picker.
       - name: Stage demo databases
-        run: |
-          mkdir -p dist/dbml
-          cp src/model/__fixtures__/grouped.dbml dist/dbml/shop.dbml
-          cp examples/pokemon.dbml dist/dbml/pokemon.dbml
-          cp examples/shop.dbt-manifest.json dist/dbml/shop.dbml.dbt-manifest.json
-          printf '{"databases":[{"file":"shop.dbml"},{"file":"pokemon.dbml"}]}\n' > dist/dbml/manifest.json
+        run: bash scripts/stage-demo.sh dist/dbml
 
       - uses: actions/upload-pages-artifact@v3
         with:
