@@ -34,15 +34,6 @@ describe('parseDbtManifest', () => {
     expect(unmatchedNodes.length).toBe(14);
   });
 
-  it('every edge endpoint resolves to a table in the model', () => {
-    const { edges } = parseDbtManifest(manifest, model);
-    expect(edges.length).toBeGreaterThan(0);
-    for (const e of edges) {
-      expect(model.tables.has(e.fromTable)).toBe(true);
-      expect(model.tables.has(e.toTable)).toBe(true);
-    }
-  });
-
   it('drops dims-from-staging edges (staging endpoint unmatched)', () => {
     const { edges } = parseDbtManifest(manifest, model);
     const hasStagingEdge = edges.some(
@@ -51,28 +42,9 @@ describe('parseDbtManifest', () => {
     expect(hasStagingEdge).toBe(false);
   });
 
-  it('keeps fact-from-dim edges where both endpoints are model tables', () => {
+  it('the example manifest has no intra-dbml lineage (marts build only from staging)', () => {
     const { edges } = parseDbtManifest(manifest, model);
-    const has = (from: string, to: string) =>
-      edges.some((e) => e.fromTable === `model.shop.${from}` && e.toTable === `model.shop.${to}`);
-    expect(has('d_customer', 'f_order')).toBe(true);
-    expect(has('d_product', 'f_order')).toBe(true);
-    expect(has('d_employee', 'f_order')).toBe(true);
-    expect(has('d_product', 'f_stock')).toBe(true);
-    expect(has('d_warehouse', 'f_stock')).toBe(true);
-    expect(has('d_customer', 'f_shipment')).toBe(true);
-    expect(has('d_product', 'f_shipment')).toBe(true);
-    expect(has('d_employee', 'f_sales_rep')).toBe(true);
-    expect(edges.length).toBe(8);
-  });
-
-  it('drops the fabricated fact-to-fact deps', () => {
-    const { edges } = parseDbtManifest(manifest, model);
-    const has = (from: string, to: string) =>
-      edges.some((e) => e.fromTable === `model.shop.${from}` && e.toTable === `model.shop.${to}`);
-    expect(has('f_order', 'f_shipment')).toBe(false);
-    expect(has('f_order', 'f_sales_rep')).toBe(false);
-    expect(has('f_shipment', 'f_stock')).toBe(false);
+    expect(edges).toEqual([]);
   });
 
   it('extracts 1-hop external parents (staging models) for matched tables', () => {

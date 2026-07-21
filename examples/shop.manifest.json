@@ -134,10 +134,7 @@
       "alias": "f_order",
       "depends_on": {
         "nodes": [
-          "model.shop.stg_orders",
-          "model.shop.d_customer",
-          "model.shop.d_product",
-          "model.shop.d_employee"
+          "model.shop.stg_orders"
         ]
       }
     },
@@ -148,9 +145,7 @@
       "alias": "f_stock",
       "depends_on": {
         "nodes": [
-          "model.shop.stg_inventory",
-          "model.shop.d_product",
-          "model.shop.d_warehouse"
+          "model.shop.stg_inventory"
         ]
       }
     },
@@ -161,9 +156,7 @@
       "alias": "f_shipment",
       "depends_on": {
         "nodes": [
-          "model.shop.stg_shipments",
-          "model.shop.d_customer",
-          "model.shop.d_product"
+          "model.shop.stg_shipments"
         ]
       }
     },
@@ -174,8 +167,7 @@
       "alias": "f_sales_rep",
       "depends_on": {
         "nodes": [
-          "model.shop.stg_employees",
-          "model.shop.d_employee"
+          "model.shop.stg_employees"
         ]
       }
     }
@@ -266,24 +258,16 @@
       "model.shop.stg_warehouses"
     ],
     "model.shop.f_order": [
-      "model.shop.stg_orders",
-      "model.shop.d_customer",
-      "model.shop.d_product",
-      "model.shop.d_employee"
+      "model.shop.stg_orders"
     ],
     "model.shop.f_stock": [
-      "model.shop.stg_inventory",
-      "model.shop.d_product",
-      "model.shop.d_warehouse"
+      "model.shop.stg_inventory"
     ],
     "model.shop.f_shipment": [
-      "model.shop.stg_shipments",
-      "model.shop.d_customer",
-      "model.shop.d_product"
+      "model.shop.stg_shipments"
     ],
     "model.shop.f_sales_rep": [
-      "model.shop.stg_employees",
-      "model.shop.d_employee"
+      "model.shop.stg_employees"
     ]
   },
   "child_map": {
@@ -330,22 +314,10 @@
     "model.shop.stg_shipments": [
       "model.shop.f_shipment"
     ],
-    "model.shop.d_customer": [
-      "model.shop.f_order",
-      "model.shop.f_shipment"
-    ],
-    "model.shop.d_product": [
-      "model.shop.f_order",
-      "model.shop.f_stock",
-      "model.shop.f_shipment"
-    ],
-    "model.shop.d_employee": [
-      "model.shop.f_order",
-      "model.shop.f_sales_rep"
-    ],
-    "model.shop.d_warehouse": [
-      "model.shop.f_stock"
-    ],
+    "model.shop.d_customer": [],
+    "model.shop.d_product": [],
+    "model.shop.d_employee": [],
+    "model.shop.d_warehouse": [],
     "model.shop.f_order": [],
     "model.shop.f_stock": [],
     "model.shop.f_shipment": [],
