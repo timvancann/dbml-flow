@@ -31,7 +31,9 @@ export interface TableNodeData {
   pkCount: number;
 }
 
-export type CompactTableNodeData = Omit<TableNodeData, 'columns' | 'hiddenCount'>;
+export type CompactTableNodeData = Omit<TableNodeData, 'columns' | 'hiddenCount'> & {
+  isLineageContext?: boolean;
+};
 
 export interface GroupNodeData {
   name: string;
@@ -82,6 +84,53 @@ export function estimateNodeSize(data: Pick<TableNodeData, 'columns' | 'hiddenCo
   return { width: NODE_WIDTH, height: HEADER_H + rows * ROW_H + FOOTER_H };
 }
 
+function buildTableNodeData(
+  model: Model,
+  name: string,
+  fkByTable: Map<string, Set<string>>,
+  referencedByTable: Map<string, Set<string>>,
+): TableNodeData | null {
+  const table = model.tables.get(name);
+  if (!table) return null;
+  const fkSet = fkByTable.get(name) ?? new Set<string>();
+  const refSet = referencedByTable.get(name) ?? new Set<string>();
+
+  const allColumns: FlowColumn[] = table.columns.map((c) => ({
+    name: c.name,
+    type: c.type,
+    isPrimaryKey: c.isPrimaryKey,
+    isForeignKey: fkSet.has(c.name),
+    isReferenced: refSet.has(c.name),
+  }));
+
+  // Always keep all key columns; fill remaining budget with plain columns.
+  const keyCols = allColumns.filter((c) => c.isPrimaryKey || c.isForeignKey || c.isReferenced);
+  const plainCols = allColumns.filter((c) => !c.isPrimaryKey && !c.isForeignKey && !c.isReferenced);
+  const plainBudget = Math.max(0, MAX_VISIBLE_COLUMNS - keyCols.length);
+  const visible = [...keyCols, ...plainCols.slice(0, plainBudget)];
+  // Restore original column order within the visible subset.
+  const visibleSet = new Set(visible.map((c) => c.name));
+  const orderedVisible = allColumns.filter((c) => visibleSet.has(c.name));
+  const hiddenCount = allColumns.length - orderedVisible.length;
+
+  return {
+    name,
+    label: name.split('.').pop() ?? name,
+    schema: table.group ?? 'ungrouped',
+    kind: classifyTable(name),
+    columns: orderedVisible,
+    hiddenCount,
+    columnCount: allColumns.length,
+    fkCount: fkSet.size,
+    pkCount: allColumns.filter((c) => c.isPrimaryKey).length,
+  };
+}
+
+function toCompactData(data: TableNodeData): CompactTableNodeData {
+  const { columns: _columns, hiddenCount: _hiddenCount, ...compact } = data;
+  return compact;
+}
+
 export function selectionToFlow(
   model: Model,
   selection: Selection,
@@ -114,47 +163,15 @@ export function selectionToFlow(
   const nodes: FlowNode[] = [];
   for (const name of selection.nodes) {
     if (memberToGroup.has(name)) continue;
-    const table = model.tables.get(name);
-    if (!table) continue;
-    const fkSet = fkByTable.get(name) ?? new Set<string>();
-    const refSet = referencedByTable.get(name) ?? new Set<string>();
+    const data = buildTableNodeData(model, name, fkByTable, referencedByTable);
+    if (!data) continue;
 
-    const allColumns: FlowColumn[] = table.columns.map((c) => ({
-      name: c.name,
-      type: c.type,
-      isPrimaryKey: c.isPrimaryKey,
-      isForeignKey: fkSet.has(c.name),
-      isReferenced: refSet.has(c.name),
-    }));
-
-    // Always keep all key columns; fill remaining budget with plain columns.
-    const keyCols = allColumns.filter((c) => c.isPrimaryKey || c.isForeignKey || c.isReferenced);
-    const plainCols = allColumns.filter((c) => !c.isPrimaryKey && !c.isForeignKey && !c.isReferenced);
-    const plainBudget = Math.max(0, MAX_VISIBLE_COLUMNS - keyCols.length);
-    const visible = [...keyCols, ...plainCols.slice(0, plainBudget)];
-    // Restore original column order within the visible subset.
-    const visibleSet = new Set(visible.map((c) => c.name));
-    const orderedVisible = allColumns.filter((c) => visibleSet.has(c.name));
-    const hiddenCount = allColumns.length - orderedVisible.length;
-
-    const data: TableNodeData = {
-      name,
-      label: name.split('.').pop() ?? name,
-      schema: table.group ?? 'ungrouped',
-      kind: classifyTable(name),
-      columns: orderedVisible,
-      hiddenCount,
-      columnCount: allColumns.length,
-      fkCount: fkSet.size,
-      pkCount: allColumns.filter((c) => c.isPrimaryKey).length,
-    };
     if (selection.collapsed.has(name)) {
-      const { columns: _columns, hiddenCount: _hiddenCount, ...compact } = data;
       nodes.push({
         id: name,
         type: 'tableCompact',
         position: { x: 0, y: 0 },
-        data: compact,
+        data: toCompactData(data),
         width: NODE_WIDTH,
         height: COMPACT_H,
       });
@@ -235,13 +252,44 @@ export function selectionToFlow(
     }
   }
 
+  // Context pull-in: for each root, its 1-hop lineage neighbors (parents AND
+  // children) that are real model tables not already in the selection get
+  // rendered as dashed "context" compact cards. They never cascade further.
+  const contextTables = new Set<string>();
+  for (const root of selection.roots) {
+    for (const le of lineage?.edges ?? []) {
+      const neighbor = le.fromTable === root ? le.toTable : le.toTable === root ? le.fromTable : null;
+      if (!neighbor) continue;
+      if (selection.nodes.has(neighbor)) continue;
+      if (!model.tables.has(neighbor)) continue;
+      contextTables.add(neighbor);
+    }
+  }
+
+  for (const name of contextTables) {
+    const data = buildTableNodeData(model, name, fkByTable, referencedByTable);
+    if (!data) continue;
+    nodes.push({
+      id: name,
+      type: 'tableCompact',
+      position: { x: 0, y: 0 },
+      data: { ...toCompactData(data), isLineageContext: true },
+      width: NODE_WIDTH,
+      height: COMPACT_H,
+    });
+  }
+
+  const effectiveNodes = contextTables.size > 0 ? new Set([...selection.nodes, ...contextTables]) : selection.nodes;
+
   // Lineage is a table-level-only overlay: it never anchors onto a super-group
   // node, so it can never aggregate with (and paint over) the ref edges above.
+  // Root-gated: an edge renders only if at least one endpoint is a root.
   const lineageSeen = new Set<string>();
   const lineageEdges: FlowEdge[] = [];
   for (const le of lineage?.edges ?? []) {
-    if (!selection.nodes.has(le.fromTable) || !selection.nodes.has(le.toTable)) continue;
+    if (!effectiveNodes.has(le.fromTable) || !effectiveNodes.has(le.toTable)) continue;
     if (memberToGroup.has(le.fromTable) || memberToGroup.has(le.toTable)) continue;
+    if (!selection.roots.has(le.fromTable) && !selection.roots.has(le.toTable)) continue;
 
     const key = `${le.fromTable}|${le.toTable}`;
     if (lineageSeen.has(key)) continue;
@@ -256,13 +304,14 @@ export function selectionToFlow(
 
   // Phantom upstream nodes: 1-hop non-dbml parents (staging/sources) of a
   // matched table, but only when that table anchors table-level (a rendered
-  // full/compact node) — never onto a super-group.
+  // full/compact node) and is itself a root — never onto a super-group.
   const phantomSeen = new Set<string>();
   const phantomNodes: FlowNode[] = [];
   const phantomEdges: FlowEdge[] = [];
   for (const ext of lineage?.external ?? []) {
     if (!selection.nodes.has(ext.toTable)) continue;
     if (memberToGroup.has(ext.toTable)) continue;
+    if (!selection.roots.has(ext.toTable)) continue;
 
     const phantomId = `phantom:${ext.fromNode}`;
     if (!phantomSeen.has(phantomId)) {

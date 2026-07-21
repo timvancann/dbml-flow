@@ -1,5 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { loadModel } from '@/model/loadModel';
+import { parseDbtManifest } from '@/model/parseDbtManifest';
 import { resolveSelection } from '@/selection/resolveSelection';
 import {
   selectionToFlow,
@@ -150,6 +151,7 @@ describe('selectionToFlow', () => {
       full: new Set(['test_table']),
       collapsed: new Set(),
       superGroups: new Map(),
+      roots: new Set(['test_table']),
     });
     const node = nodes[0];
 
@@ -227,6 +229,7 @@ describe('mixed detail rendering', () => {
       full: new Set(['employee']),
       collapsed: new Set(),
       superGroups: new Map(),
+      roots: new Set(['employee']),
     });
     expect(edges).toHaveLength(1);
     expect(edges[0].source).toBe('employee');
@@ -446,5 +449,64 @@ describe('phantom upstream nodes', () => {
     const { nodes, edges } = selectionToFlow(model, sel);
     expect(nodes.some((n) => n.type === 'phantom')).toBe(false);
     expect(edges.some((e) => e.id.startsWith('ext:'))).toBe(false);
+  });
+});
+
+describe('root-scoped lineage context (task 26)', () => {
+  const shopModel = loadModel(readFileSync('examples/shop.dbml', 'utf8'));
+  const shopManifest = JSON.parse(readFileSync('examples/shop.manifest.json', 'utf8'));
+  const shopLineage = parseDbtManifest(shopManifest, shopModel);
+  const F_ORDER = 'model.shop.f_order';
+  const STG_ORDERS = 'model.shop.stg_orders';
+
+  it('~1f_order pulls in stg_orders as a lineage context node with a dotted edge, no dim phantoms', () => {
+    const sel = resolveSelection(shopModel, '~1f_order');
+    const { nodes, edges } = selectionToFlow(shopModel, sel, {
+      edges: shopLineage.edges,
+      external: shopLineage.external,
+    });
+
+    const context = nodes.find((n) => n.id === STG_ORDERS)!;
+    expect(context).toBeDefined();
+    expect(context.type).toBe('tableCompact');
+    expect((context.data as CompactTableNodeData).isLineageContext).toBe(true);
+
+    const contextEdge = edges.find((e) => e.id === `lin:${STG_ORDERS}->${F_ORDER}`);
+    expect(contextEdge).toBeDefined();
+    expect(contextEdge!.source).toBe(STG_ORDERS);
+    expect(contextEdge!.target).toBe(F_ORDER);
+    expect(contextEdge!.data.kind).toBe('lineage');
+
+    // The dims (d_customer/d_product/d_employee) are 2 hops out and not roots,
+    // so their staging phantoms must not render.
+    expect(nodes.some((n) => n.type === 'phantom')).toBe(false);
+  });
+
+  it('~1stg_orders pulls in f_order as a lineage context node', () => {
+    const sel = resolveSelection(shopModel, '~1stg_orders');
+    const { nodes, edges } = selectionToFlow(shopModel, sel, {
+      edges: shopLineage.edges,
+      external: shopLineage.external,
+    });
+
+    const context = nodes.find((n) => n.id === F_ORDER)!;
+    expect(context).toBeDefined();
+    expect((context.data as CompactTableNodeData).isLineageContext).toBe(true);
+    expect(edges.some((e) => e.id === `lin:${STG_ORDERS}->${F_ORDER}`)).toBe(true);
+  });
+
+  it('g:* is unchanged: every table is a root, all phantoms/lineage render, zero context nodes', () => {
+    const sel = resolveSelection(shopModel, 'g:*');
+    expect(sel.roots).toEqual(sel.nodes);
+    const { nodes, edges } = selectionToFlow(shopModel, sel, {
+      edges: shopLineage.edges,
+      external: shopLineage.external,
+    });
+
+    expect(nodes.some((n) => (n.data as CompactTableNodeData).isLineageContext)).toBe(false);
+    // The stg_orders -> f_order intra-dbml lineage edge still renders.
+    expect(edges.some((e) => e.id === `lin:${STG_ORDERS}->${F_ORDER}`)).toBe(true);
+    // Staging phantoms for the dims (stg_customers/products/employees/etc) still render.
+    expect(nodes.filter((n) => n.type === 'phantom').length).toBeGreaterThan(0);
   });
 });

@@ -150,7 +150,11 @@ export function Canvas({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [model, selector, adjacency, lineage, showLineage]);
 
-  const tableCount = nodes.filter((n) => n.type === 'table' || n.type === 'tableCompact').length;
+  const tableCount = nodes.filter(
+    (n) =>
+      (n.type === 'table' || n.type === 'tableCompact') &&
+      !(n.data as { isLineageContext?: boolean }).isLineageContext,
+  ).length;
   const edgeCount = edges.filter((e) => (e.data as { kind?: string } | undefined)?.kind !== 'lineage').length;
 
   const connectedNodeIds = useMemo(() => {

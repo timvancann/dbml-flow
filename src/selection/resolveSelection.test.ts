@@ -138,3 +138,30 @@ describe('detail levels', () => {
     expect(sel.nodes.has(FACT)).toBe(false);
   });
 });
+
+describe('roots', () => {
+  it('a traversal atom roots only the base table, not its hop-expanded neighbors', () => {
+    const sel = resolveSelection(model, '~1f_order');
+    expect([...sel.roots]).toEqual([FACT]);
+  });
+
+  it('g:* roots every matched table', () => {
+    const sel = resolveSelection(model, 'g:*');
+    expect([...sel.roots].sort()).toEqual([...sel.nodes].sort());
+  });
+
+  it('excluded tables are never roots', () => {
+    const sel = resolveSelection(model, 'g:* !f_order');
+    expect(sel.roots.has(FACT)).toBe(false);
+  });
+
+  it('super-group members are never roots', () => {
+    const sel = resolveSelection(model, '');
+    expect(sel.roots.size).toBe(0);
+  });
+
+  it('intersection comma-group roots the intersected result, not the raw bases', () => {
+    const sel = resolveSelection(model, 'group:sales,*.f_*');
+    expect([...sel.roots].sort()).toEqual([...sel.nodes].sort());
+  });
+});

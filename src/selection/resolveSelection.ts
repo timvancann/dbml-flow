@@ -9,6 +9,7 @@ export interface Selection {
   full: Set<string>; // render with columns
   collapsed: Set<string>; // render as compact cards
   superGroups: Map<string, string[]>; // group name -> member tables inside the super-node
+  roots: Set<string>; // tables matched DIRECTLY by include atoms, before hop expansion
 }
 
 function opToDirection(op: Atom['op']): Direction | null {
@@ -39,6 +40,17 @@ function resolveAtom(model: Model, adjacency: Adjacency, atom: Atom): Set<string
 function intersect(a: Set<string>, b: Set<string>): Set<string> {
   const result = new Set<string>();
   for (const x of a) if (b.has(x)) result.add(x);
+  return result;
+}
+
+/** Root contribution of a single atom: the base match, before hop expansion. */
+function atomRootBase(model: Model, atom: Atom, resolved: Set<string>): Set<string> {
+  return opToDirection(atom.op) === null ? resolved : matchPiece(model, atom.piece);
+}
+
+function union(a: Set<string>, b: Set<string>): Set<string> {
+  const result = new Set(a);
+  for (const x of b) result.add(x);
   return result;
 }
 
@@ -73,6 +85,7 @@ export function resolveSelection(
   const generalDetail = new Map<string, Detail>();
   const exactDetail = new Map<string, Detail>();
   const superGroupNames = new Set<string>();
+  let rootCandidates = new Set<string>();
 
   for (const group of ast.include) {
     // Standalone dotted group atom -> super-node(s).
@@ -82,29 +95,33 @@ export function resolveSelection(
     }
 
     let groupSet: Set<string> | null = null;
+    let rootBaseUnion = new Set<string>();
     let allCollapsed = true;
     for (const atom of group) {
       if (!atom.collapsed) allCollapsed = false;
       const atomSet = resolveAtom(model, adjacency, atom);
       groupSet = groupSet === null ? atomSet : intersect(groupSet, atomSet);
+      rootBaseUnion = union(rootBaseUnion, atomRootBase(model, atom, atomSet));
     }
     if (!groupSet) continue;
 
     const detail: Detail = allCollapsed ? 'collapsed' : 'full';
     const target = group.length === 1 && isExactAtom(group[0]) ? exactDetail : generalDetail;
     for (const name of groupSet) upsertDetail(target, name, detail);
+    rootCandidates = union(rootCandidates, intersect(rootBaseUnion, groupSet));
   }
 
   // Exact atoms override general matches.
   const tableDetail = new Map<string, Detail>(generalDetail);
   for (const [name, detail] of exactDetail) tableDetail.set(name, detail);
 
-  // Exclusions remove tables everywhere.
+  // Exclusions remove tables everywhere, including from the root set.
   const excluded = new Set<string>();
   for (const atom of ast.exclude) {
     for (const name of resolveAtom(model, adjacency, atom)) excluded.add(name);
   }
   for (const name of excluded) tableDetail.delete(name);
+  for (const name of excluded) rootCandidates.delete(name);
 
   // Super-groups keep members without table-level detail; drop empty ones.
   const superGroups = new Map<string, string[]>();
@@ -123,5 +140,6 @@ export function resolveSelection(
   for (const members of superGroups.values()) for (const m of members) nodes.add(m);
 
   const edges = model.refs.filter((r) => nodes.has(r.fromTable) && nodes.has(r.toTable));
-  return { nodes, edges, full, collapsed, superGroups };
+  const roots = intersect(rootCandidates, nodes);
+  return { nodes, edges, full, collapsed, superGroups, roots };
 }
