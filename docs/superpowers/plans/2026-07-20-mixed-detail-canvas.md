@@ -1706,3 +1706,21 @@ State `hoveredNode: string | null` set by ReactFlow `onNodeMouseEnter`/`onNodeMo
 8. Acceptance: `bunx vitest run` + tsc green; fresh dev server: shop with `g:*` shows staging phantom cards feeding dims and facts with dotted edges; overview shows NO phantoms; toggle hides everything lineage-related including phantoms.
 
 - [ ] Implement (TDD for parseDbtManifest/selectionToFlow changes); verify; commit `feat: phantom upstream nodes; realistic example lineage`. DO NOT PUSH.
+
+---
+
+### Task 26: Root-scoped lineage context (user review feedback)
+
+**Files:** Modify `src/selection/resolveSelection.ts` (+test), `src/canvas/selectionToFlow.ts` (+test), `src/canvas/TableNodeCompact.tsx`, `src/canvas/Canvas.tsx` if needed.
+
+**Problem:** lineage attaches to every visible table and never pulls in unselected real tables. So `~1f_order` shows the dims' staging phantoms (2 lineage hops from focus, noise) but NOT stg_orders (f_order's real 1-hop parent), and `~1stg_orders` (no FK refs) shows nothing downstream at all.
+
+**Binding requirements:**
+1. **Roots.** `Selection` gains `roots: Set<string>`: the tables matched DIRECTLY by include atoms, before hop expansion. For traversal atoms (`~`/`+` forms) use `matchPiece(atom.piece)`; for op-none atoms (incl. `path:`, globs, `group:`/`g:`) use the atom's full resolved set. Intersection comma-groups: union the per-atom bases, then intersect with the final selected `nodes`. Exclusions remove from roots too. Super-group members are never roots. (Consequence: in `g:*` every rendered table is a root; in `~1f_order` only f_order is.)
+2. **Root-gated lineage.** In `selectionToFlow`: an intra-dbml lineage edge renders only if at least one endpoint is a root (both endpoints table-level visible as today). A phantom (external) edge renders only if its `toTable` is a root.
+3. **Context pull-in.** For each root, its 1-hop lineage neighbors from `Lineage.edges` (parents AND children) that are model tables NOT in `selection.nodes` become context nodes: id = the table name, type `tableCompact`, with `data.isLineageContext: true`, plus the dotted lineage edge (normal `lin:` id/data). Dedupe when a context table neighbors several roots. Context nodes are excluded from the HUD tableCount (adjust the Canvas filter: count only non-context table/tableCompact nodes). Context nodes do NOT cascade (no lineage-of-context).
+4. **Context styling.** `TableNodeCompact` with `isLineageContext`: dashed 1px border (like PhantomNode), slightly muted label, keeps its expand button BUT the button rewrites the selector to add the table (existing `toggleTableCollapsed(selector, name, false)` behavior is fine — clicking promotes it into the selection).
+5. **Tests.** resolveSelection: roots for `~1f_order` = {f_order}; roots for `g:*` = all tables; roots exclude excluded tables; intersection case. selectionToFlow: `~1f_order`-style selection with the example lineage → stg_orders context node present + dotted edge, dims' phantoms absent; `~1stg_orders`-style → f_order context node present; g:*-style → identical output to today (regression: all phantoms/edges still there, no context nodes since everything is selected).
+6. Acceptance: `bunx vitest run` + tsc green; browser: `?s=~1f_order` shows stg_orders as dashed compact card with arrowed dotted edge and NO stg_customers/products/employees phantoms; `?s=~1stg_orders` shows orders phantom -> stg_orders -> f_order context card; `g:*` unchanged.
+
+- [ ] Implement (TDD); verify; commit `feat: lineage context scoped to selection roots`. DO NOT PUSH.
