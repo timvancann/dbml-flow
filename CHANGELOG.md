@@ -1,3 +1,10 @@
+## v0.3.0 (2026-07-21)
+
+### Feat
+
+- auto-enable the lineage overlay after a manifest upload
+- dbt manifest lineage overlay (prototype)
+
 ## v0.2.1 (2026-07-20)
 
 ### Fix
