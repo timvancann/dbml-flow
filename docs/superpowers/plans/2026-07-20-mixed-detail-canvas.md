@@ -1635,3 +1635,20 @@ State `hoveredNode: string | null` set by ReactFlow `onNodeMouseEnter`/`onNodeMo
 **Tests:** parseDbtManifest — exact-id join finds all 8 tables, staging/sources land in unmatchedNodes, edge endpoints all within the model, dims-from-staging edges dropped (one endpoint unmatched) while fact←dim edges survive; selectionToFlow — lineage edges anchor/aggregate to super-groups and never merge with ref edges (distinct ids).
 
 - [ ] TDD parseDbtManifest; wire store/flow/HUD/load; `bunx vitest run` + tsc clean; visual check with the shop demo (toggle on: dashed accent edges, e.g. f_order → f_shipment absent but f_order ← d_customer visible; overview: aggregated lineage between super-nodes); commit `feat: dbt manifest lineage overlay (prototype)`.
+
+---
+
+### Task 22: Lineage rework — dbml primary, table-level dotted overlay (user review feedback)
+
+**Files:** Modify `src/canvas/selectionToFlow.ts` (+test), `src/canvas/Canvas.tsx`, `src/app/store.ts`, `src/app/bootstrap.ts` (+ any test touching showLineage).
+
+**Root cause being fixed:** lineage edges aggregated into group-to-group edges on the same pairs as ref edges and rendered on top, visually replacing the dbml relationships on the overview; no legend/indicator existed.
+
+**Binding requirements:**
+1. selectionToFlow: emit a lineage edge ONLY when BOTH endpoints anchor to table-level nodes (full or compact). Any lineage edge with a super-group-anchored endpoint is dropped, as are intra-group ones (already). No lineage aggregation, no counts needed beyond dedupe of identical pairs. Ref edge behavior untouched.
+2. Rendering: truly dotted (`strokeDasharray: '2 5'`, `strokeLinecap: 'round'`), stroke `var(--dim)` (cyan), opacity 0.7, width 1.4, still no cardinality glyphs. Ref edges keep their exact current style and are never occluded at group level anymore (guaranteed by rule 1).
+3. Always-on by default: `setLineage(edges)` sets `showLineage: true` in the store itself (single source; remove the extra call in LoadButton; bootstrap sibling load gets it for free). The HUD toggle remains to hide it.
+4. The toggle doubles as legend: label it with a dotted-line glyph + word, e.g. `┄ lineage` (ASCII/box-drawing char, no emoji), active state = current accent styling but with the dotted glyph colored `var(--dim)` so the chip itself shows what dotted means. Tooltip: "Toggle dbt lineage overlay (dotted)".
+5. Tests: lineage edge dropped when one endpoint is in a super-group (e.g. `.g:* group:sales` with lineage d_product→f_order where d_product is in a dotted group → dropped); kept between two rendered tables incl. compact; setLineage turns showLineage on.
+
+- [ ] TDD selectionToFlow change; store/Canvas/legend wiring; `bunx vitest run` + tsc clean; visual check (overview: ref edges pristine solid, NO lineage; expanded sales+inventory: dotted cyan lineage between visible tables); commit `fix: lineage is a table-level dotted overlay; dbml refs stay primary`. DO NOT PUSH.
