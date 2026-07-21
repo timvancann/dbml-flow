@@ -226,32 +226,24 @@ export function selectionToFlow(
     }
   }
 
-  const lineageMerged = new Map<string, FlowEdge>();
+  // Lineage is a table-level-only overlay: it never anchors onto a super-group
+  // node, so it can never aggregate with (and paint over) the ref edges above.
+  const lineageSeen = new Set<string>();
+  const lineageEdges: FlowEdge[] = [];
   for (const le of lineage ?? []) {
     if (!selection.nodes.has(le.fromTable) || !selection.nodes.has(le.toTable)) continue;
-    const src = anchor(le.fromTable);
-    const tgt = anchor(le.toTable);
-    if (src.node === tgt.node && memberToGroup.has(le.fromTable)) continue; // intra-super-group
+    if (memberToGroup.has(le.fromTable) || memberToGroup.has(le.toTable)) continue;
 
-    const bothGroups = memberToGroup.has(le.fromTable) && memberToGroup.has(le.toTable);
-    let source = src.node;
-    let target = tgt.node;
-    if (bothGroups) [source, target] = [source, target].sort();
-
-    const key = `${source}|${target}`;
-    const existing = lineageMerged.get(key);
-    if (existing) {
-      existing.data.count += 1;
-      existing.id = bothGroups ? existing.id : `lin:agg:${key}`;
-    } else {
-      lineageMerged.set(key, {
-        id: bothGroups ? `lin:${source}--${target}` : `lin:${le.fromTable}->${le.toTable}`,
-        source,
-        target,
-        data: { count: 1, kind: 'lineage' },
-      });
-    }
+    const key = `${le.fromTable}|${le.toTable}`;
+    if (lineageSeen.has(key)) continue;
+    lineageSeen.add(key);
+    lineageEdges.push({
+      id: `lin:${le.fromTable}->${le.toTable}`,
+      source: le.fromTable,
+      target: le.toTable,
+      data: { count: 1, kind: 'lineage' },
+    });
   }
 
-  return { nodes, edges: [...merged.values(), ...lineageMerged.values()] };
+  return { nodes, edges: [...merged.values(), ...lineageEdges] };
 }

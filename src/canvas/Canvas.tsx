@@ -124,7 +124,13 @@ export function Canvas({
           data: e.data,
           style:
             e.data.kind === 'lineage'
-              ? { stroke: 'var(--accent)', strokeWidth: 1.2, opacity: 0.65, strokeDasharray: '6 4' }
+              ? {
+                  stroke: 'var(--dim)',
+                  strokeWidth: 1.4,
+                  opacity: 0.7,
+                  strokeDasharray: '2 5',
+                  strokeLinecap: 'round',
+                }
               : { stroke: 'var(--edge)', strokeWidth: 1.4, opacity: 0.5 },
         })) as Edge[],
       );
@@ -218,7 +224,7 @@ export function Canvas({
         {lineage !== null && (
           <button
             onClick={() => setShowLineage(!showLineage)}
-            title="Toggle dbt manifest lineage overlay"
+            title="Toggle dbt lineage overlay (dotted)"
             style={{
               fontFamily: '"Spline Sans Mono", monospace',
               fontSize: 11,
@@ -231,7 +237,7 @@ export function Canvas({
               backdropFilter: 'blur(6px)',
             }}
           >
-            Lineage
+            <span style={{ color: 'var(--dim)' }}>┄</span> lineage
           </button>
         )}
         <HopStepper />

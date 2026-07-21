@@ -283,7 +283,7 @@ describe('lineage overlay', () => {
   const D_CUSTOMER = 'model.shop.d_customer';
   const D_PRODUCT = 'model.shop.d_product';
 
-  it('anchors lineage edges like refs and tags them with kind: lineage', () => {
+  it('emits a table-level lineage edge tagged with kind: lineage', () => {
     const sel = resolveSelection(model, 'f_order+');
     const { edges } = selectionToFlow(model, sel, [{ fromTable: D_CUSTOMER, toTable: FACT }]);
     const lin = edges.find((e) => e.id.startsWith('lin:'))!;
@@ -291,7 +291,6 @@ describe('lineage overlay', () => {
     expect(lin.source).toBe(D_CUSTOMER);
     expect(lin.target).toBe(FACT);
     expect(lin.data.kind).toBe('lineage');
-    expect(lin.data.count).toBe(1);
   });
 
   it('never merges a lineage edge with a ref edge, even between the same pair', () => {
@@ -313,18 +312,49 @@ describe('lineage overlay', () => {
     expect(edges.some((e) => e.id.startsWith('lin:'))).toBe(false);
   });
 
-  it('aggregates lineage onto super-group nodes on the overview, sorted undirected', () => {
+  it('drops a lineage edge when either endpoint anchors to a super-group', () => {
+    // d_product is dotted-collapsed into shop.inventory; f_order stays a full
+    // table node. The lineage edge must never anchor onto the group node.
+    const sel = resolveSelection(model, '.g:* group:sales');
+    const { edges } = selectionToFlow(model, sel, [{ fromTable: D_PRODUCT, toTable: FACT }]);
+    expect(edges.some((e) => e.id.startsWith('lin:'))).toBe(false);
+  });
+
+  it('never aggregates lineage onto super-group nodes on the overview', () => {
     const sel = resolveSelection(model, '');
     const { edges } = selectionToFlow(model, sel, [
-      { fromTable: D_CUSTOMER, toTable: FACT }, // shop.sales -> shop.sales (intra-group, dropped)
-      { fromTable: D_PRODUCT, toTable: FACT }, // shop.inventory -> shop.sales
-      { fromTable: 'model.shop.d_warehouse', toTable: 'model.shop.f_stock' }, // intra shop.inventory, dropped
+      { fromTable: D_CUSTOMER, toTable: FACT },
+      { fromTable: D_PRODUCT, toTable: FACT },
+    ]);
+    expect(edges.some((e) => e.id.startsWith('lin:'))).toBe(false);
+  });
+
+  it('keeps lineage between two rendered full tables', () => {
+    const sel = resolveSelection(model, 'f_order+');
+    const { edges } = selectionToFlow(model, sel, [{ fromTable: D_CUSTOMER, toTable: FACT }]);
+    const lin = edges.find((e) => e.id.startsWith('lin:'))!;
+    expect(lin.source).toBe(D_CUSTOMER);
+    expect(lin.target).toBe(FACT);
+  });
+
+  it('keeps lineage between two rendered tables when one is collapsed to compact', () => {
+    const sel = resolveSelection(model, 'f_order+ .d_customer');
+    const { nodes, edges } = selectionToFlow(model, sel, [{ fromTable: D_CUSTOMER, toTable: FACT }]);
+    expect(nodes.find((n) => n.id === D_CUSTOMER)!.type).toBe('tableCompact');
+    const lin = edges.find((e) => e.id.startsWith('lin:'))!;
+    expect(lin).toBeDefined();
+    expect(lin.source).toBe(D_CUSTOMER);
+    expect(lin.target).toBe(FACT);
+  });
+
+  it('dedupes identical lineage pairs without aggregating a count', () => {
+    const sel = resolveSelection(model, 'f_order+');
+    const { edges } = selectionToFlow(model, sel, [
+      { fromTable: D_CUSTOMER, toTable: FACT },
+      { fromTable: D_CUSTOMER, toTable: FACT },
     ]);
     const lin = edges.filter((e) => e.id.startsWith('lin:'));
     expect(lin).toHaveLength(1);
-    const [source, target] = ['shop.inventory', 'shop.sales'].sort();
-    expect(lin[0].id).toBe(`lin:${source}--${target}`);
-    expect(lin[0].data.count).toBe(1);
   });
 
   it('with no lineage passed, produces no lin: edges', () => {

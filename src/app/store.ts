@@ -71,7 +71,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   },
   setDatabases: (databases) => set({ databases }),
   setActiveDatabase: (activeDb) => set({ activeDb }),
-  setLineage: (lineage) => set({ lineage }),
+  setLineage: (lineage) => set({ lineage, showLineage: true }),
   setShowLineage: (showLineage) => set({ showLineage }),
   setLoadError: (loadError) => set({ loadError }),
   setPathMode: (on) => set({ pathMode: on, pathStart: on ? get().pathStart : null }),

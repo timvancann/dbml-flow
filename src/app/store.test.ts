@@ -4,7 +4,7 @@ import { useAppStore } from '@/app/store';
 const dbml = readFileSync('src/model/__fixtures__/grouped.dbml', 'utf8');
 
 beforeEach(() => {
-  useAppStore.setState({ model: null, selector: '', selectedTable: null, pathMode: false, pathStart: null, loadError: null, databases: null, activeDb: null });
+  useAppStore.setState({ model: null, selector: '', selectedTable: null, pathMode: false, pathStart: null, loadError: null, databases: null, activeDb: null, lineage: null, showLineage: false });
 });
 
 describe('useAppStore', () => {
@@ -54,6 +54,13 @@ describe('useAppStore', () => {
     useAppStore.getState().setActiveDatabase('a');
     useAppStore.getState().setActiveDatabase(null);
     expect(useAppStore.getState().activeDb).toBeNull();
+  });
+
+  it('setLineage turns showLineage on', () => {
+    expect(useAppStore.getState().showLineage).toBe(false);
+    useAppStore.getState().setLineage([{ fromTable: 'a', toTable: 'b' }]);
+    expect(useAppStore.getState().showLineage).toBe(true);
+    expect(useAppStore.getState().lineage).toEqual([{ fromTable: 'a', toTable: 'b' }]);
   });
 
   it('path mode: first pick sets start, second pick builds path selector', () => {

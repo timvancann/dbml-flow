@@ -40,7 +40,6 @@ export function LoadButton() {
     }
     setLoadError(null);
     setLineage(edges);
-    useAppStore.getState().setShowLineage(true);
   }
 
   function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
