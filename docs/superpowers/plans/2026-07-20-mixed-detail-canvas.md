@@ -1686,3 +1686,23 @@ State `hoveredNode: string | null` set by ReactFlow `onNodeMouseEnter`/`onNodeMo
 6. Acceptance: fresh `bun run dev` → shop auto-lineage still works via the new name; picker multi-select of examples/shop.dbml + examples/shop.manifest.json loads both at once; `bunx vitest run` + tsc green.
 
 - [ ] Implement; verify; commit `feat: paired-file convention name.dbml + name.manifest.json`. DO NOT PUSH.
+
+---
+
+### Task 25: Honest lineage — realistic manifest + phantom upstream nodes (user review feedback)
+
+**Files:** Modify `examples/shop.manifest.json`, `src/model/types.ts`, `src/model/parseDbtManifest.ts` (+test), `src/app/store.ts` (+test), `src/app/LoadButton.tsx`, `src/app/bootstrap.ts`, `src/canvas/selectionToFlow.ts` (+test), `src/canvas/Canvas.tsx`. Create `src/canvas/PhantomNode.tsx`.
+
+**Why:** real mart-level lineage points mostly at staging/sources that are not in the DBML; the fabricated fact-to-fact edges were a lie and the both-endpoints-visible rule hid the true upstream story.
+
+**Binding requirements:**
+1. **Manifest realism:** remove the three fabricated deps (f_order→f_shipment, f_order→f_sales_rep, f_shipment→f_stock) from parent_map, child_map, AND depends_on. Resulting DAG: sources → staging → dims/facts, plus the existing dim → fact surrogate-key deps. Keep nodes/sources untouched otherwise.
+2. **Types:** `LineageExternalEdge { fromNode: string; fromLabel: string; resourceType: string; toTable: string }` and `Lineage { edges: LineageEdge[]; external: LineageExternalEdge[] }` in types.ts.
+3. **parseDbtManifest** returns `{ edges, external, matchedTables, unmatchedNodes }`: `external` holds, for every matched table, each 1-hop parent from parent_map that did NOT match a model table; `fromLabel` = the node's `name` field (fallback: last id segment), `resourceType` = 'model' | 'source' | 'seed' | 'node' (look up in nodes, then sources, fallback 'node'). No transitive walk (1 hop only).
+4. **Store:** `lineage: Lineage | null`; `setLineage(lineage)` keeps the auto-`showLineage: true`. LoadButton/bootstrap pass the full `{ edges, external }`.
+5. **selectionToFlow** with lineage: for each external edge whose `toTable` anchors table-level (full or compact; super-group children are skipped), emit a phantom node id `phantom:${fromNode}` (deduped — ONE phantom per external parent regardless of child count), type `'phantom'`, width 200 height 44, `data: { name: fromNode, label: fromLabel, resourceType }`, plus a dotted edge id `ext:${fromNode}->${toTable}` with `data: { count: 1, kind: 'lineage' }`. Phantom nodes participate in elk layout like any node. Zero phantoms when lineage is off/absent, and none on the pure overview (all children in super-groups).
+6. **PhantomNode.tsx:** visually subordinate: dashed 1px border `var(--line-2)`, background `transparent` (or a very low-alpha panel), border-radius 10, label in `var(--ink-3)` Spline Sans Mono 12px, a tiny uppercase resourceType tag (e.g. `staging`? no — print the actual resourceType: `model` / `source`), a right-side source handle (invisible style like GroupNode's), no target handle needed. No emoji, no em-dashes. Register as nodeType `phantom` in Canvas; exclude phantoms from the HUD tableCount; hover highlighting treats them as ordinary nodes.
+7. **Tests:** parseDbtManifest — external extraction (e.g. f_order gains stg_orders as external parent with resourceType 'model'; d_customer gains stg_customers; sources do NOT appear as external parents of marts since staging sits between; edges back to the 8 real dim→fact deps, fabricated fact-to-fact assertions removed); selectionToFlow — phantom emitted for a visible table, deduped across two children, skipped when the child is in a super-group, absent when lineage omitted; store test updated for the Lineage shape.
+8. Acceptance: `bunx vitest run` + tsc green; fresh dev server: shop with `g:*` shows staging phantom cards feeding dims and facts with dotted edges; overview shows NO phantoms; toggle hides everything lineage-related including phantoms.
+
+- [ ] Implement (TDD for parseDbtManifest/selectionToFlow changes); verify; commit `feat: phantom upstream nodes; realistic example lineage`. DO NOT PUSH.
