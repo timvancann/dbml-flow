@@ -1652,3 +1652,19 @@ State `hoveredNode: string | null` set by ReactFlow `onNodeMouseEnter`/`onNodeMo
 5. Tests: lineage edge dropped when one endpoint is in a super-group (e.g. `.g:* group:sales` with lineage d_product→f_order where d_product is in a dotted group → dropped); kept between two rendered tables incl. compact; setLineage turns showLineage on.
 
 - [ ] TDD selectionToFlow change; store/Canvas/legend wiring; `bunx vitest run` + tsc clean; visual check (overview: ref edges pristine solid, NO lineage; expanded sales+inventory: dotted cyan lineage between visible tables); commit `fix: lineage is a table-level dotted overlay; dbml refs stay primary`. DO NOT PUSH.
+
+---
+
+### Task 23: Dev/prod parity for demo staging (added post-planning at user request)
+
+**Files:** Create `examples/shop.dbml` (copy of `src/model/__fixtures__/grouped.dbml`; fixture stays put, tests untouched), `scripts/stage-demo.sh`. Modify `package.json` (predev), `.gitignore` (public/dbml/), `.github/workflows/deploy.yml` (use the script), `README.md` (one line: dev serves the same baked demos as prod).
+
+**Requirements:**
+1. `scripts/stage-demo.sh TARGET_DIR` (bash, `set -euo pipefail`): mkdir -p, copy `examples/shop.dbml` → `shop.dbml`, `examples/pokemon.dbml` → `pokemon.dbml`, `examples/shop.dbt-manifest.json` → `shop.dbml.dbt-manifest.json`, and write `manifest.json` with the two-database list exactly as deploy.yml does today. Executable bit set.
+2. `package.json`: `"predev": "bash scripts/stage-demo.sh public/dbml"` so `bun run dev` stages automatically (bun runs pre-scripts). Keep `dev` itself unchanged.
+3. `.gitignore`: add `public/dbml/`.
+4. `deploy.yml`: replace the inline "Stage demo databases" copy/printf lines with `bash scripts/stage-demo.sh dist/dbml`. Behavior identical (verify file names byte-for-byte against the current inline version).
+5. README: one sentence in Quick start noting the dev server serves the same bundled demo databases (and lineage) as the live demo. No em-dashes.
+6. Acceptance: fresh `bun run dev` → app shows the database chooser (2 DBs); picking shop auto-loads lineage (dotted edges + `┄ lineage` chip present without any upload); pokemon works; `bunx vitest run` + tsc stay green.
+
+- [ ] Implement; verify per acceptance; commit `feat: stage demo databases for dev via the same script as deploy`. DO NOT PUSH.
