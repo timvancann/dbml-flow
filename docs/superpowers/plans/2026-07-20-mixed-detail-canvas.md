@@ -1611,3 +1611,27 @@ State `hoveredNode: string | null` set by ReactFlow `onNodeMouseEnter`/`onNodeMo
 3. **Edge tooltips**: Canvas `onEdgeMouseEnter`/`onEdgeMouseLeave` set `hoveredEdge: string | null`; pass `data: { ...e.data, hovered: e.id === hoveredEdge }` when mapping edges. In RefEdge, when `data.hovered` and `count === 1` and fromColumn present, render an EdgeLabelRenderer div at (labelX, labelY) showing `fromColumn -> toColumn` (ASCII arrow), Spline Sans Mono 10px, same chip styling as the count chip. Merged/group-anchored edges (no column data): show `${count} refs` on hover only if count > 1 (the static chip can then become hover-only OR stay; keep the static count chip as is and skip the tooltip for merged edges).
 
 - [ ] Implement; update tests; `bunx vitest run` + tsc clean; visual check incl. ghosts gone on overview; commit `fix: retire built-in group node type collision; feat: fit-on-change and edge tooltips` (split into two commits: the rename fix, then the fit+tooltip feat).
+
+---
+
+### Task 21: dbt manifest lineage overlay, prototype (added post-planning at user request)
+
+**Files:**
+- Create: `examples/shop.dbt-manifest.json`, `src/model/parseDbtManifest.ts`, `src/model/parseDbtManifest.test.ts`
+- Modify: `src/app/store.ts`, `src/app/LoadButton.tsx`, `src/canvas/selectionToFlow.ts` (+test), `src/canvas/Canvas.tsx`, `src/canvas/RefEdge.tsx` (or a new LineageEdge)
+
+**Goal:** Prove out lineage-from-manifest end to end: accept a dbt `manifest.json` next to the DBML, join on node id == table name, render lineage as a second, visually distinct edge class behind a HUD toggle. No selector-grammar work.
+
+**Key facts:** dbml table names in the fixture ARE dbt node ids (`model.shop.f_order`), so the primary join is exact-match on `parent_map` keys; fall back to matching `schema.name`/last segment for robustness, and report unmatched nodes rather than failing. dbt manifest shape: `nodes` (id → {resource_type, name, schema, alias, depends_on}), `sources`, `parent_map` (id → parent ids), `child_map`. The example manifest must be structurally faithful (nodes + parent_map + a metadata block) and include staging models and sources that do NOT exist in the DBML, to exercise unmatched handling. Realistic DAG: dims from staging (d_customer ← stg_customers etc.), facts from staging + dims (f_order ← stg_orders, d_customer, d_product, d_employee; f_stock ← stg_inventory, d_product, d_warehouse; f_shipment ← stg_shipments, d_customer, d_product; f_sales_rep ← stg_employees, d_employee), staging from sources.
+
+**Interfaces:**
+- `parseDbtManifest(json: unknown, model: Model): { edges: LineageEdge[]; matchedTables: Set<string>; unmatchedNodes: string[] }` where `LineageEdge = { fromTable: string; toTable: string }` (from = upstream parent, to = downstream child), keeping only edges whose BOTH endpoints resolve to model tables. `LineageEdge` lives in `src/model/types.ts`.
+- Store: `lineage: LineageEdge[] | null`, `showLineage: boolean`, `setLineage`, `setShowLineage`. Loading a new dbml clears lineage.
+- `selectionToFlow` gains an optional `lineage?: LineageEdge[]` param: anchors lineage edges exactly like refs (same escape/super-group rules, drop intra-group, dedupe on anchored pair with count), emits them with `data: { count, kind: 'lineage' }` and id `lin:` prefix; never merges a lineage edge with a ref edge.
+- Rendering: lineage edges dashed (`strokeDasharray: '6 4'`), stroke `var(--accent)`, opacity 0.65, no cardinality glyphs; count chip styling reused. Either branch in RefEdge on `data.kind === 'lineage'` or a separate edge type — implementer's call, keep it small.
+- Canvas HUD: a "Lineage" toggle button (left cluster, active styling like Find path) rendered only when `lineage` is non-null; when on, lineage edges render on top of ref edges.
+- LoadButton: widen `accept` to `.dbml,.txt,.json`; a `.json` file parsed as JSON with `nodes` and `parent_map` keys is a dbt manifest → `setLineage(parseDbtManifest(json, model).edges)` (error state if no model loaded yet or nothing matches); anything else keeps current error handling. Additionally bootstrap: after loading a baked/demo dbml, try fetching a sibling `<file>.dbt-manifest.json` (silently ignore 404) so the bundled shop demo can ship lineage; stage `examples/shop.dbt-manifest.json` for the dev/demo flow the same way deploy.yml stages demo dbml files (dev: put a copy under `public/dbml/shop.dbml.dbt-manifest.json` if that is the naming the bootstrap expects — keep naming consistent between bootstrap code and staged file).
+
+**Tests:** parseDbtManifest — exact-id join finds all 8 tables, staging/sources land in unmatchedNodes, edge endpoints all within the model, dims-from-staging edges dropped (one endpoint unmatched) while fact←dim edges survive; selectionToFlow — lineage edges anchor/aggregate to super-groups and never merge with ref edges (distinct ids).
+
+- [ ] TDD parseDbtManifest; wire store/flow/HUD/load; `bunx vitest run` + tsc clean; visual check with the shop demo (toggle on: dashed accent edges, e.g. f_order → f_shipment absent but f_order ← d_customer visible; overview: aggregated lineage between super-nodes); commit `feat: dbt manifest lineage overlay (prototype)`.
