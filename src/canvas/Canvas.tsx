@@ -52,6 +52,9 @@ export function Canvas({
   const pathMode = useAppStore((s) => s.pathMode);
   const pathStart = useAppStore((s) => s.pathStart);
   const pickPathTable = useAppStore((s) => s.pickPathTable);
+  const lineage = useAppStore((s) => s.lineage);
+  const showLineage = useAppStore((s) => s.showLineage);
+  const setShowLineage = useAppStore((s) => s.setShowLineage);
   const { getNodes, fitView } = useReactFlow();
   const [copyState, setCopyState] = useState<'idle' | 'success' | 'error'>('idle');
   const [pngExportState, setPngExportState] = useState<'idle' | 'error'>('idle');
@@ -103,7 +106,11 @@ export function Canvas({
     setHoveredNode(null);
     setHoveredEdge(null);
 
-    const raw = selectionToFlow(model, resolveSelection(model, selector, adjacency));
+    const raw = selectionToFlow(
+      model,
+      resolveSelection(model, selector, adjacency),
+      showLineage ? (lineage ?? undefined) : undefined,
+    );
 
     layoutGraph(raw.nodes as FlowNode[], raw.edges as never).then((laid) => {
       if (cancelled) return;
@@ -115,7 +122,10 @@ export function Canvas({
           targetHandle: e.targetHandle,
           type: 'ref',
           data: e.data,
-          style: { stroke: 'var(--edge)', strokeWidth: 1.4, opacity: 0.5 },
+          style:
+            e.data.kind === 'lineage'
+              ? { stroke: 'var(--accent)', strokeWidth: 1.2, opacity: 0.65, strokeDasharray: '6 4' }
+              : { stroke: 'var(--edge)', strokeWidth: 1.4, opacity: 0.5 },
         })) as Edge[],
       );
       requestAnimationFrame(() => {
@@ -128,10 +138,10 @@ export function Canvas({
 
     return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [model, selector, adjacency]);
+  }, [model, selector, adjacency, lineage, showLineage]);
 
   const tableCount = nodes.filter((n) => n.type === 'table' || n.type === 'tableCompact').length;
-  const edgeCount = edges.length;
+  const edgeCount = edges.filter((e) => (e.data as { kind?: string } | undefined)?.kind !== 'lineage').length;
 
   const connectedNodeIds = useMemo(() => {
     if (!hoveredNode) return null;
@@ -205,6 +215,25 @@ export function Canvas({
           <b style={{ color: 'var(--dim)', fontWeight: 600 }}>{tableCount}</b> tables ·{' '}
           <b style={{ color: 'var(--dim)', fontWeight: 600 }}>{edgeCount}</b> refs visible
         </div>
+        {lineage !== null && (
+          <button
+            onClick={() => setShowLineage(!showLineage)}
+            title="Toggle dbt manifest lineage overlay"
+            style={{
+              fontFamily: '"Spline Sans Mono", monospace',
+              fontSize: 11,
+              color: showLineage ? 'var(--accent)' : 'var(--ink-2)',
+              background: showLineage ? 'rgba(139,156,255,.12)' : 'rgba(13,16,24,.7)',
+              border: showLineage ? '1px solid rgba(139,156,255,.5)' : '1px solid var(--line)',
+              padding: '5px 9px',
+              borderRadius: 7,
+              cursor: 'pointer',
+              backdropFilter: 'blur(6px)',
+            }}
+          >
+            Lineage
+          </button>
+        )}
         <HopStepper />
         {expandedGroupTokens(selector).map(({ token, name }) => (
           <button

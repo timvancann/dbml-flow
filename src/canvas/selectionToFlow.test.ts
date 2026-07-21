@@ -278,3 +278,58 @@ describe('mixed detail rendering', () => {
     expect(toGroup!.data.toCardinality).toBeUndefined();
   });
 });
+
+describe('lineage overlay', () => {
+  const D_CUSTOMER = 'model.shop.d_customer';
+  const D_PRODUCT = 'model.shop.d_product';
+
+  it('anchors lineage edges like refs and tags them with kind: lineage', () => {
+    const sel = resolveSelection(model, 'f_order+');
+    const { edges } = selectionToFlow(model, sel, [{ fromTable: D_CUSTOMER, toTable: FACT }]);
+    const lin = edges.find((e) => e.id.startsWith('lin:'))!;
+    expect(lin).toBeDefined();
+    expect(lin.source).toBe(D_CUSTOMER);
+    expect(lin.target).toBe(FACT);
+    expect(lin.data.kind).toBe('lineage');
+    expect(lin.data.count).toBe(1);
+  });
+
+  it('never merges a lineage edge with a ref edge, even between the same pair', () => {
+    // The dbml ref runs f_order -> d_product; add a lineage edge on the same pair.
+    const sel = resolveSelection(model, 'f_order+');
+    const { edges } = selectionToFlow(model, sel, [{ fromTable: FACT, toTable: D_PRODUCT }]);
+    const refEdge = edges.find((e) => e.source === FACT && e.target === D_PRODUCT && !e.id.startsWith('lin:'));
+    const linEdge = edges.find((e) => e.source === FACT && e.target === D_PRODUCT && e.id.startsWith('lin:'));
+    expect(refEdge).toBeDefined();
+    expect(linEdge).toBeDefined();
+    expect(refEdge!.id).not.toBe(linEdge!.id);
+  });
+
+  it('drops lineage edges outside the current selection', () => {
+    const sel = resolveSelection(model, 'f_order+');
+    const { edges } = selectionToFlow(model, sel, [
+      { fromTable: 'model.shop.d_warehouse', toTable: 'model.shop.f_stock' },
+    ]);
+    expect(edges.some((e) => e.id.startsWith('lin:'))).toBe(false);
+  });
+
+  it('aggregates lineage onto super-group nodes on the overview, sorted undirected', () => {
+    const sel = resolveSelection(model, '');
+    const { edges } = selectionToFlow(model, sel, [
+      { fromTable: D_CUSTOMER, toTable: FACT }, // shop.sales -> shop.sales (intra-group, dropped)
+      { fromTable: D_PRODUCT, toTable: FACT }, // shop.inventory -> shop.sales
+      { fromTable: 'model.shop.d_warehouse', toTable: 'model.shop.f_stock' }, // intra shop.inventory, dropped
+    ]);
+    const lin = edges.filter((e) => e.id.startsWith('lin:'));
+    expect(lin).toHaveLength(1);
+    const [source, target] = ['shop.inventory', 'shop.sales'].sort();
+    expect(lin[0].id).toBe(`lin:${source}--${target}`);
+    expect(lin[0].data.count).toBe(1);
+  });
+
+  it('with no lineage passed, produces no lin: edges', () => {
+    const sel = resolveSelection(model, 'f_order+');
+    const { edges } = selectionToFlow(model, sel);
+    expect(edges.some((e) => e.id.startsWith('lin:'))).toBe(false);
+  });
+});

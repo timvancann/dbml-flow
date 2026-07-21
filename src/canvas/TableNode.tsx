@@ -24,6 +24,11 @@ export function TableNode({ data }: NodeProps & { data: TableNodeData }) {
         boxShadow: '0 18px 40px -22px rgba(0,0,0,.9), 0 2px 0 rgba(255,255,255,.02) inset',
       }}
     >
+      {/* Node-level fallback handles for handle-less edges (e.g. the lineage
+          overlay, which has no per-column data). Column FK/referenced handles
+          above take the specific id when one is supplied. */}
+      <Handle type="source" position={Position.Right} style={{ opacity: 0 }} />
+      <Handle type="target" position={Position.Left} style={{ opacity: 0 }} />
       <div
         className="flex items-center gap-2 px-3 py-2 border-b border-[var(--line)]"
         style={{ userSelect: 'none' }}

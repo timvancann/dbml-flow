@@ -1,4 +1,4 @@
-import type { Model } from '@/model/types';
+import type { LineageEdge, Model } from '@/model/types';
 import type { Selection } from '@/selection/resolveSelection';
 import { classifyTable, type TableKind } from '@/canvas/classifyTable';
 
@@ -61,6 +61,7 @@ export interface FlowEdge {
     toColumn?: string;
     fromCardinality?: '1' | '*';
     toCardinality?: '1' | '*';
+    kind?: 'lineage';
   };
 }
 
@@ -75,6 +76,7 @@ export function estimateNodeSize(data: Pick<TableNodeData, 'columns' | 'hiddenCo
 export function selectionToFlow(
   model: Model,
   selection: Selection,
+  lineage?: LineageEdge[],
 ): { nodes: FlowNode[]; edges: FlowEdge[] } {
   // FK column names per table, from model refs.
   const fkByTable = new Map<string, Set<string>>();
@@ -224,5 +226,32 @@ export function selectionToFlow(
     }
   }
 
-  return { nodes, edges: [...merged.values()] };
+  const lineageMerged = new Map<string, FlowEdge>();
+  for (const le of lineage ?? []) {
+    if (!selection.nodes.has(le.fromTable) || !selection.nodes.has(le.toTable)) continue;
+    const src = anchor(le.fromTable);
+    const tgt = anchor(le.toTable);
+    if (src.node === tgt.node && memberToGroup.has(le.fromTable)) continue; // intra-super-group
+
+    const bothGroups = memberToGroup.has(le.fromTable) && memberToGroup.has(le.toTable);
+    let source = src.node;
+    let target = tgt.node;
+    if (bothGroups) [source, target] = [source, target].sort();
+
+    const key = `${source}|${target}`;
+    const existing = lineageMerged.get(key);
+    if (existing) {
+      existing.data.count += 1;
+      existing.id = bothGroups ? existing.id : `lin:agg:${key}`;
+    } else {
+      lineageMerged.set(key, {
+        id: bothGroups ? `lin:${source}--${target}` : `lin:${le.fromTable}->${le.toTable}`,
+        source,
+        target,
+        data: { count: 1, kind: 'lineage' },
+      });
+    }
+  }
+
+  return { nodes, edges: [...merged.values(), ...lineageMerged.values()] };
 }

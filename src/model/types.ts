@@ -27,6 +27,13 @@ export interface Group {
   tables: string[];
 }
 
+// A dbt-manifest-derived lineage edge: fromTable is the upstream parent,
+// toTable is the downstream child (dbt's parent_map direction).
+export interface LineageEdge {
+  fromTable: string;
+  toTable: string;
+}
+
 export interface Model {
   tables: Map<string, Table>;
   refs: Ref[];

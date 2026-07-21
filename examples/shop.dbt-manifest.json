@@ -1,0 +1,90 @@
+{
+  "metadata": {
+    "dbt_schema_version": "https://schemas.getdbt.com/dbt/manifest/v11.json",
+    "dbt_version": "1.7.0",
+    "generated_at": "2026-07-20T00:00:00.000000Z",
+    "project_name": "shop"
+  },
+  "nodes": {
+    "model.shop.stg_customers": { "resource_type": "model", "name": "stg_customers", "schema": "staging", "alias": "stg_customers", "depends_on": { "nodes": ["source.shop.raw.customers"] } },
+    "model.shop.stg_products": { "resource_type": "model", "name": "stg_products", "schema": "staging", "alias": "stg_products", "depends_on": { "nodes": ["source.shop.raw.products"] } },
+    "model.shop.stg_employees": { "resource_type": "model", "name": "stg_employees", "schema": "staging", "alias": "stg_employees", "depends_on": { "nodes": ["source.shop.raw.employees"] } },
+    "model.shop.stg_orders": { "resource_type": "model", "name": "stg_orders", "schema": "staging", "alias": "stg_orders", "depends_on": { "nodes": ["source.shop.raw.orders"] } },
+    "model.shop.stg_inventory": { "resource_type": "model", "name": "stg_inventory", "schema": "staging", "alias": "stg_inventory", "depends_on": { "nodes": ["source.shop.raw.inventory"] } },
+    "model.shop.stg_warehouses": { "resource_type": "model", "name": "stg_warehouses", "schema": "staging", "alias": "stg_warehouses", "depends_on": { "nodes": ["source.shop.raw.warehouses"] } },
+    "model.shop.stg_shipments": { "resource_type": "model", "name": "stg_shipments", "schema": "staging", "alias": "stg_shipments", "depends_on": { "nodes": ["source.shop.raw.shipments"] } },
+
+    "model.shop.d_customer": { "resource_type": "model", "name": "d_customer", "schema": "sales", "alias": "d_customer", "depends_on": { "nodes": ["model.shop.stg_customers"] } },
+    "model.shop.d_product": { "resource_type": "model", "name": "d_product", "schema": "inventory", "alias": "d_product", "depends_on": { "nodes": ["model.shop.stg_products"] } },
+    "model.shop.d_employee": { "resource_type": "model", "name": "d_employee", "schema": "people", "alias": "d_employee", "depends_on": { "nodes": ["model.shop.stg_employees"] } },
+    "model.shop.d_warehouse": { "resource_type": "model", "name": "d_warehouse", "schema": "inventory", "alias": "d_warehouse", "depends_on": { "nodes": ["model.shop.stg_warehouses"] } },
+
+    "model.shop.f_order": { "resource_type": "model", "name": "f_order", "schema": "sales", "alias": "f_order", "depends_on": { "nodes": ["model.shop.stg_orders", "model.shop.d_customer", "model.shop.d_product", "model.shop.d_employee"] } },
+    "model.shop.f_stock": { "resource_type": "model", "name": "f_stock", "schema": "inventory", "alias": "f_stock", "depends_on": { "nodes": ["model.shop.stg_inventory", "model.shop.d_product", "model.shop.d_warehouse"] } },
+    "model.shop.f_shipment": { "resource_type": "model", "name": "f_shipment", "schema": "sales", "alias": "f_shipment", "depends_on": { "nodes": ["model.shop.stg_shipments", "model.shop.d_customer", "model.shop.d_product"] } },
+    "model.shop.f_sales_rep": { "resource_type": "model", "name": "f_sales_rep", "schema": "people", "alias": "f_sales_rep", "depends_on": { "nodes": ["model.shop.stg_employees", "model.shop.d_employee"] } }
+  },
+  "sources": {
+    "source.shop.raw.customers": { "resource_type": "source", "name": "customers", "schema": "raw", "source_name": "raw" },
+    "source.shop.raw.products": { "resource_type": "source", "name": "products", "schema": "raw", "source_name": "raw" },
+    "source.shop.raw.employees": { "resource_type": "source", "name": "employees", "schema": "raw", "source_name": "raw" },
+    "source.shop.raw.orders": { "resource_type": "source", "name": "orders", "schema": "raw", "source_name": "raw" },
+    "source.shop.raw.inventory": { "resource_type": "source", "name": "inventory", "schema": "raw", "source_name": "raw" },
+    "source.shop.raw.warehouses": { "resource_type": "source", "name": "warehouses", "schema": "raw", "source_name": "raw" },
+    "source.shop.raw.shipments": { "resource_type": "source", "name": "shipments", "schema": "raw", "source_name": "raw" }
+  },
+  "parent_map": {
+    "source.shop.raw.customers": [],
+    "source.shop.raw.products": [],
+    "source.shop.raw.employees": [],
+    "source.shop.raw.orders": [],
+    "source.shop.raw.inventory": [],
+    "source.shop.raw.warehouses": [],
+    "source.shop.raw.shipments": [],
+
+    "model.shop.stg_customers": ["source.shop.raw.customers"],
+    "model.shop.stg_products": ["source.shop.raw.products"],
+    "model.shop.stg_employees": ["source.shop.raw.employees"],
+    "model.shop.stg_orders": ["source.shop.raw.orders"],
+    "model.shop.stg_inventory": ["source.shop.raw.inventory"],
+    "model.shop.stg_warehouses": ["source.shop.raw.warehouses"],
+    "model.shop.stg_shipments": ["source.shop.raw.shipments"],
+
+    "model.shop.d_customer": ["model.shop.stg_customers"],
+    "model.shop.d_product": ["model.shop.stg_products"],
+    "model.shop.d_employee": ["model.shop.stg_employees"],
+    "model.shop.d_warehouse": ["model.shop.stg_warehouses"],
+
+    "model.shop.f_order": ["model.shop.stg_orders", "model.shop.d_customer", "model.shop.d_product", "model.shop.d_employee"],
+    "model.shop.f_stock": ["model.shop.stg_inventory", "model.shop.d_product", "model.shop.d_warehouse"],
+    "model.shop.f_shipment": ["model.shop.stg_shipments", "model.shop.d_customer", "model.shop.d_product"],
+    "model.shop.f_sales_rep": ["model.shop.stg_employees", "model.shop.d_employee"]
+  },
+  "child_map": {
+    "source.shop.raw.customers": ["model.shop.stg_customers"],
+    "source.shop.raw.products": ["model.shop.stg_products"],
+    "source.shop.raw.employees": ["model.shop.stg_employees"],
+    "source.shop.raw.orders": ["model.shop.stg_orders"],
+    "source.shop.raw.inventory": ["model.shop.stg_inventory"],
+    "source.shop.raw.warehouses": ["model.shop.stg_warehouses"],
+    "source.shop.raw.shipments": ["model.shop.stg_shipments"],
+
+    "model.shop.stg_customers": ["model.shop.d_customer"],
+    "model.shop.stg_products": ["model.shop.d_product"],
+    "model.shop.stg_employees": ["model.shop.d_employee", "model.shop.f_sales_rep"],
+    "model.shop.stg_orders": ["model.shop.f_order"],
+    "model.shop.stg_inventory": ["model.shop.f_stock"],
+    "model.shop.stg_warehouses": ["model.shop.d_warehouse"],
+    "model.shop.stg_shipments": ["model.shop.f_shipment"],
+
+    "model.shop.d_customer": ["model.shop.f_order", "model.shop.f_shipment"],
+    "model.shop.d_product": ["model.shop.f_order", "model.shop.f_stock", "model.shop.f_shipment"],
+    "model.shop.d_employee": ["model.shop.f_order", "model.shop.f_sales_rep"],
+    "model.shop.d_warehouse": ["model.shop.f_stock"],
+
+    "model.shop.f_order": [],
+    "model.shop.f_stock": [],
+    "model.shop.f_shipment": [],
+    "model.shop.f_sales_rep": []
+  }
+}
