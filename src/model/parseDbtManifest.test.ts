@@ -63,15 +63,16 @@ describe('parseDbtManifest', () => {
     expect(has('d_customer', 'f_shipment')).toBe(true);
     expect(has('d_product', 'f_shipment')).toBe(true);
     expect(has('d_employee', 'f_sales_rep')).toBe(true);
-    expect(edges.length).toBe(8);
+    expect(edges.length).toBe(11);
   });
 
-  it('never produces an edge with a fact->fact relationship not in the fixture', () => {
+  it('keeps fact-to-fact lineage that has no FK counterpart', () => {
     const { edges } = parseDbtManifest(manifest, model);
-    const hasOrderToShipment = edges.some(
-      (e) => e.fromTable === 'model.shop.f_order' && e.toTable === 'model.shop.f_shipment',
-    );
-    expect(hasOrderToShipment).toBe(false);
+    const has = (from: string, to: string) =>
+      edges.some((e) => e.fromTable === `model.shop.${from}` && e.toTable === `model.shop.${to}`);
+    expect(has('f_order', 'f_shipment')).toBe(true);
+    expect(has('f_order', 'f_sales_rep')).toBe(true);
+    expect(has('f_shipment', 'f_stock')).toBe(true);
   });
 
   it('falls back to schema.name matching when node id does not exact-match a table', () => {
