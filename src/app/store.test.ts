@@ -4,7 +4,7 @@ import { useAppStore } from '@/app/store';
 const dbml = readFileSync('src/model/__fixtures__/grouped.dbml', 'utf8');
 
 beforeEach(() => {
-  useAppStore.setState({ model: null, selector: '', selectedTable: null, pathMode: false, pathStart: null, loadError: null, databases: null, activeDb: null, showLineage: false });
+  useAppStore.setState({ model: null, selector: '', selectedTable: null, pathMode: false, pathStart: null, loadError: null, databases: null, activeDb: null, viewMode: 'refs' });
 });
 
 describe('useAppStore', () => {
@@ -56,15 +56,20 @@ describe('useAppStore', () => {
     expect(useAppStore.getState().activeDb).toBeNull();
   });
 
-  it('loading a file with Dep edges turns showLineage on', () => {
+  it('loading a file with Dep edges defaults to the lineage view', () => {
     useAppStore.getState().loadDbml(readFileSync('examples/shop.dbml', 'utf8'));
-    expect(useAppStore.getState().showLineage).toBe(true);
+    expect(useAppStore.getState().viewMode).toBe('lineage');
   });
 
-  it('loading a file without Dep edges leaves showLineage off', () => {
-    useAppStore.setState({ showLineage: true });
+  it('loading a file without Dep edges resets to the refs view', () => {
+    useAppStore.setState({ viewMode: 'sources' });
     useAppStore.getState().loadDbml(dbml);
-    expect(useAppStore.getState().showLineage).toBe(false);
+    expect(useAppStore.getState().viewMode).toBe('refs');
+  });
+
+  it('setViewMode switches views', () => {
+    useAppStore.getState().setViewMode('sources');
+    expect(useAppStore.getState().viewMode).toBe('sources');
   });
 
   it('path mode: first pick sets start, second pick builds path selector', () => {

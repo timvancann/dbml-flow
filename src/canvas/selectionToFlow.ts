@@ -1,4 +1,5 @@
 import type { Lineage, Model } from '@/model/types';
+import type { SourceFrontier } from '@/model/sourceFrontier';
 import type { Selection } from '@/selection/resolveSelection';
 import { classifyTable, type TableKind } from '@/canvas/classifyTable';
 
@@ -122,11 +123,16 @@ function toCompactData(data: TableNodeData): CompactTableNodeData {
   return compact;
 }
 
+// `lineage` renders the Dep overlay (dotted edges + 1-hop context cards).
+// `sources` renders the sources view instead: each root gets a dotted edge from
+// every source it is transitively built from; lineage is then ignored.
 export function selectionToFlow(
   model: Model,
   selection: Selection,
   lineage?: Lineage,
+  sources?: SourceFrontier,
 ): { nodes: FlowNode[]; edges: FlowEdge[] } {
+  if (sources) lineage = undefined;
   // FK column names per table, from model refs.
   const fkByTable = new Map<string, Set<string>>();
   const referencedByTable = new Map<string, Set<string>>();
@@ -293,8 +299,40 @@ export function selectionToFlow(
     });
   }
 
+  // Sources view: one dotted edge per (transitive) source into each root that
+  // renders as a table node. A source outside the selection is added once as a
+  // compact context card; one already selected is connected to directly.
+  const sourceEdges: FlowEdge[] = [];
+  const addedSources = new Set<string>();
+  if (sources) {
+    for (const root of selection.roots) {
+      if (!selection.nodes.has(root) || memberToGroup.has(root)) continue;
+      for (const source of sources.sourcesOf.get(root) ?? []) {
+        if (!selection.nodes.has(source) && !addedSources.has(source)) {
+          const data = buildTableNodeData(model, source, fkByTable, referencedByTable);
+          if (!data) continue;
+          addedSources.add(source);
+          nodes.push({
+            id: source,
+            type: 'tableCompact',
+            position: { x: 0, y: 0 },
+            data: { ...toCompactData(data), isLineageContext: true },
+            width: NODE_WIDTH,
+            height: COMPACT_H,
+          });
+        }
+        sourceEdges.push({
+          id: `src:${source}->${root}`,
+          source,
+          target: root,
+          data: { count: 1, kind: 'lineage' },
+        });
+      }
+    }
+  }
+
   return {
     nodes,
-    edges: [...merged.values(), ...lineageEdges],
+    edges: [...merged.values(), ...lineageEdges, ...sourceEdges],
   };
 }

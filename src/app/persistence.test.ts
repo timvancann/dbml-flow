@@ -1,4 +1,4 @@
-import { selectorFromSearch, searchWithSelector, dbFromSearch, searchWith } from '@/app/persistence';
+import { selectorFromSearch, searchWithSelector, dbFromSearch, searchWith, viewFromSearch } from '@/app/persistence';
 
 describe('persistence', () => {
   it('reads the active database from a search string', () => {
@@ -33,5 +33,20 @@ describe('persistence', () => {
   it('round-trips selector through search', () => {
     const s = 'group:sales,*.f_* !f_shipment';
     expect(selectorFromSearch(searchWithSelector(s))).toBe(s);
+  });
+});
+
+describe('persistence: view mode', () => {
+  it('reads v from a search string, null when absent or unknown', () => {
+    expect(viewFromSearch('?s=x&v=sources')).toBe('sources');
+    expect(viewFromSearch('?v=lineage')).toBe('lineage');
+    expect(viewFromSearch('?v=bogus')).toBeNull();
+    expect(viewFromSearch('')).toBeNull();
+  });
+
+  it('writes v only for non-default views, so refs links are unchanged', () => {
+    expect(searchWith({ db: 'shop', selector: 'f_x', view: 'sources' })).toBe('?db=shop&s=f_x&v=sources');
+    expect(searchWith({ db: 'shop', selector: 'f_x', view: 'refs' })).toBe('?db=shop&s=f_x');
+    expect(searchWith({ db: 'shop', selector: 'f_x' })).toBe('?db=shop&s=f_x');
   });
 });

@@ -18,3 +18,12 @@ describe('classifyTable', () => {
     expect(classifyTable('model.x.staging_events')).toBe('other');
   });
 });
+
+describe('classifyTable: sources', () => {
+  it('classifies a dbterd source entity (first segment "source") as source', () => {
+    expect(classifyTable('source.shop.orders')).toBe('source');
+  });
+  it('does not treat a model whose last segment starts with source as a source', () => {
+    expect(classifyTable('model.shop.source_of_truth')).toBe('other');
+  });
+});

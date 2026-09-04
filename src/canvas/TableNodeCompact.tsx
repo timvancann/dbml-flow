@@ -6,8 +6,8 @@ import { toggleTableCollapsed } from '@/app/selectorEdit';
 
 export function TableNodeCompact({ data }: NodeProps & { data: CompactTableNodeData }) {
   const isContext = data.isLineageContext === true;
-  const accent = data.kind === 'fact' ? 'var(--fact)' : data.kind === 'dim' ? 'var(--dim)' : 'var(--line-2)';
-  const accentDim = data.kind === 'fact' ? 'var(--fact-dim)' : 'var(--dim-dim)';
+  const accent = data.kind === 'fact' ? 'var(--fact)' : data.kind === 'dim' ? 'var(--dim)' : data.kind === 'source' ? 'var(--ink-2)' : 'var(--line-2)';
+  const accentDim = data.kind === 'fact' ? 'var(--fact-dim)' : data.kind === 'dim' ? 'var(--dim-dim)' : 'var(--panel-2)';
   const selector = useAppStore((s) => s.selector);
   const setSelector = useAppStore((s) => s.setSelector);
 
@@ -27,7 +27,7 @@ export function TableNodeCompact({ data }: NodeProps & { data: CompactTableNodeD
     >
       <Handle type="target" position={Position.Left} style={{ background: 'var(--dim)', width: 8, height: 8, border: '2px solid var(--panel-2)' }} />
       <span className="grid place-items-center flex-none rounded-[5px] text-[10px] font-bold" style={{ width: 19, height: 19, color: accent, background: accentDim, opacity: isContext ? 0.6 : 1 }}>
-        {data.kind === 'fact' ? 'F' : data.kind === 'dim' ? 'D' : '·'}
+        {data.kind === 'fact' ? 'F' : data.kind === 'dim' ? 'D' : data.kind === 'source' ? 'S' : '·'}
       </span>
       <div className="min-w-0 flex-1">
         <div className="text-[12.5px] font-semibold truncate" style={{ color: isContext ? 'var(--ink-3)' : 'var(--ink)' }}>{data.label}</div>

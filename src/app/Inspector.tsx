@@ -1,8 +1,9 @@
 // src/app/Inspector.tsx
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useAppStore } from '@/app/store';
 import { classifyTable } from '@/canvas/classifyTable';
 import { focusSelector } from '@/app/focus';
+import { computeSourceFrontier } from '@/model/sourceFrontier';
 
 const seg = (name: string) => name.split('.').pop() ?? name;
 
@@ -11,8 +12,9 @@ export function Inspector() {
   const selectedTable = useAppStore((s) => s.selectedTable);
   const selector = useAppStore((s) => s.selector);
   const setSelector = useAppStore((s) => s.setSelector);
+  const frontier = useMemo(() => (model ? computeSourceFrontier(model) : null), [model]);
 
-  if (!model || !selectedTable) {
+  if (!model || !selectedTable || !frontier) {
     return <div className="p-4 text-[12.5px] text-[var(--ink-3)]">Select a table to inspect.</div>;
   }
   const table = model.tables.get(selectedTable);
@@ -24,6 +26,8 @@ export function Inspector() {
   const add = (name: string) => setSelector(selector ? `${selector} ${seg(name)}` : seg(name));
   const focus = (name: string) => setSelector(focusSelector(seg(name)));
   const inSelection = selector.trim().length > 0;
+  const sources = frontier.sourcesOf.get(selectedTable) ?? [];
+  const feeds = frontier.feeds.get(selectedTable) ?? [];
 
   // Build a set of FK column names for this table
   const fkColNames = new Set<string>(outbound.flatMap((r) => r.fromColumns));
@@ -80,6 +84,9 @@ export function Inspector() {
       )}
 
       {inbound.length > 0 && <RefList title="Referenced by (toward facts)" arrow="←" refs={inbound.map((r) => r.fromTable)} onClick={add} />}
+
+      {sources.length > 0 && <RefList title="Built from sources" arrow="┄" refs={sources} onClick={focus} />}
+      {feeds.length > 0 && <RefList title="Feeds (blast radius)" arrow="┄" refs={feeds} onClick={add} />}
     </div>
   );
 }

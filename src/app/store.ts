@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { loadModel } from '@/model/loadModel';
 import type { Model } from '@/model/types';
 import type { DbEntry } from '@/app/bakedManifest';
+import type { ViewMode } from '@/app/persistence';
 
 export interface AppState {
   model: Model | null;
@@ -12,7 +13,7 @@ export interface AppState {
   loadError: string | null;
   databases: DbEntry[] | null;
   activeDb: string | null;
-  showLineage: boolean;
+  viewMode: ViewMode;
   setSelector: (s: string) => void;
   setSelectedTable: (t: string | null) => void;
   setModel: (m: Model) => void;
@@ -22,7 +23,7 @@ export interface AppState {
   pickPathTable: (name: string) => void;
   setDatabases: (dbs: DbEntry[]) => void;
   setActiveDatabase: (id: string | null) => void;
-  setShowLineage: (on: boolean) => void;
+  setViewMode: (mode: ViewMode) => void;
   setLoadError: (err: string | null) => void;
 }
 
@@ -35,7 +36,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   loadError: null,
   databases: null,
   activeDb: null,
-  showLineage: false,
+  viewMode: 'refs',
   setSelector: (selector) => set({ selector }),
   setSelectedTable: (selectedTable) => set({ selectedTable }),
   setModel: (model) => set({ model }),
@@ -47,7 +48,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       selectedTable: null,
       pathMode: false,
       pathStart: null,
-      showLineage: model.lineage.length > 0,
+      viewMode: model.lineage.length > 0 ? 'lineage' : 'refs',
     });
   },
   loadDbmlSafe: (content) => {
@@ -60,7 +61,7 @@ export const useAppStore = create<AppState>((set, get) => ({
         loadError: null,
         pathMode: false,
         pathStart: null,
-        showLineage: model.lineage.length > 0,
+        viewMode: model.lineage.length > 0 ? 'lineage' : 'refs',
       });
     } catch (error: any) {
       set({ loadError: error?.message ?? String(error) });
@@ -68,7 +69,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   },
   setDatabases: (databases) => set({ databases }),
   setActiveDatabase: (activeDb) => set({ activeDb }),
-  setShowLineage: (showLineage) => set({ showLineage }),
+  setViewMode: (viewMode) => set({ viewMode }),
   setLoadError: (loadError) => set({ loadError }),
   setPathMode: (on) => set({ pathMode: on, pathStart: on ? get().pathStart : null }),
   pickPathTable: (name) => {

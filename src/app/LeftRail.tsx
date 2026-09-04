@@ -207,7 +207,7 @@ export function LeftRail() {
                     background: kind === 'fact' ? 'var(--fact-dim)' : kind === 'dim' ? 'var(--dim-dim)' : 'transparent',
                   }}
                 >
-                  {kind === 'fact' ? 'f' : kind === 'dim' ? 'd' : '·'}
+                  {kind === 'fact' ? 'f' : kind === 'dim' ? 'd' : kind === 'source' ? 's' : '·'}
                 </span>
                 <span className="truncate">{name.split('.').pop()}</span>
                 {pathMode && pathStart === name && (

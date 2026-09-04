@@ -1825,4 +1825,4 @@ jq -c '{
 
 - [x] Part A on the fork (`--entity-dependency`, PR #157).
 - [x] Part B steps 1 and 2: `parseDbml` reads `Dep` into `model.lineage`; manifest sidecar, `parseDbtManifest`, phantom nodes and multi-file upload deleted. Commit `feat: lineage from DBML Dep blocks, drop dbt manifest sidecar`.
-- [ ] Part B steps 3 and 4: source view, plus the richer demo file.
+- [x] Part B steps 3 and 4 (2026-09-04): `sourceFrontier.ts` (source = first segment `source`, transitive walk, inverse map), `viewMode` refs/lineage/sources in store and `?v=`, sources view in `selectionToFlow`, Inspector source and feeds lists, click a source to select its consumers, demo file with 8 sources across `shop.raw`/`shop.crm`/`shop.web` and real fan-in. Left out on purpose: aggregation toggle (needs the source name, see the dbterd follow-up) and a Sources chip in the rail.

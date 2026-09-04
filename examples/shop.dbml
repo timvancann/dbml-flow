@@ -87,7 +87,6 @@ Table "model.shop.f_sales_rep" {
 
   Note: ""
 }
-//Refs (based on the DBT Relationship Tests)
 //--configured at schema: shop.staging
 Table "model.shop.stg_orders" {
   "order_id" "integer"
@@ -102,7 +101,153 @@ Table "model.shop.stg_orders" {
 
   Note: ""
 }
+//--configured at schema: shop.staging
+Table "model.shop.stg_customers" {
+  "customer_id" "integer"
+  "customer_name" "text"
+  "customer_city" "text"
+  "customer_segment" "text"
 
+  Note: ""
+}
+//--configured at schema: shop.staging
+Table "model.shop.stg_products" {
+  "product_id" "integer"
+  "product_name" "text"
+  "product_code" "text"
+  "category" "text"
+
+  Note: ""
+}
+//--configured at schema: shop.staging
+Table "model.shop.stg_employees" {
+  "employee_id" "integer"
+  "employee_name" "text"
+  "department" "text"
+  "hired_at" "timestamp"
+
+  Note: ""
+}
+//--configured at schema: shop.staging
+Table "model.shop.stg_inventory" {
+  "product_id" "integer"
+  "warehouse_id" "integer"
+  "quantity_on_hand" "integer"
+  "reorder_level" "integer"
+
+  Note: ""
+}
+//--configured at schema: shop.staging
+Table "model.shop.stg_warehouses" {
+  "warehouse_id" "integer"
+  "warehouse_name" "text"
+  "warehouse_region" "text"
+
+  Note: ""
+}
+//--configured at schema: shop.staging
+Table "model.shop.stg_shipments" {
+  "shipment_id" "integer"
+  "order_id" "integer"
+  "warehouse_id" "integer"
+  "shipment_number" "text"
+  "shipped_at" "timestamp"
+  "carrier" "text"
+
+  Note: ""
+}
+//--configured at schema: shop.staging
+Table "model.shop.stg_web_sessions" {
+  "session_id" "text"
+  "customer_id" "integer"
+  "order_id" "integer"
+  "channel" "text"
+  "region" "text"
+  "started_at" "timestamp"
+
+  Note: ""
+}
+//--configured at schema: shop.raw
+Table "source.shop.orders" {
+  "id" "integer"
+  "customer_id" "integer"
+  "product_id" "integer"
+  "employee_id" "integer"
+  "number" "text"
+  "status" "text"
+  "ordered_at" "timestamp"
+  "qty" "integer"
+  "price" "numeric"
+
+  Note: ""
+}
+//--configured at schema: shop.raw
+Table "source.shop.products" {
+  "id" "integer"
+  "name" "text"
+  "code" "text"
+  "category" "text"
+
+  Note: ""
+}
+//--configured at schema: shop.raw
+Table "source.shop.inventory" {
+  "product_id" "integer"
+  "warehouse_id" "integer"
+  "on_hand" "integer"
+  "reorder_level" "integer"
+
+  Note: ""
+}
+//--configured at schema: shop.raw
+Table "source.shop.warehouses" {
+  "id" "integer"
+  "name" "text"
+  "region" "text"
+
+  Note: ""
+}
+//--configured at schema: shop.raw
+Table "source.shop.shipments" {
+  "id" "integer"
+  "order_id" "integer"
+  "warehouse_id" "integer"
+  "number" "text"
+  "shipped_at" "timestamp"
+  "carrier" "text"
+
+  Note: ""
+}
+//--configured at schema: shop.crm
+Table "source.shop.customers" {
+  "id" "integer"
+  "full_name" "text"
+  "city" "text"
+  "segment" "text"
+
+  Note: ""
+}
+//--configured at schema: shop.crm
+Table "source.shop.employees" {
+  "id" "integer"
+  "full_name" "text"
+  "department" "text"
+  "hired_at" "timestamp"
+
+  Note: ""
+}
+//--configured at schema: shop.web
+Table "source.shop.web_sessions" {
+  "session_id" "text"
+  "customer_id" "integer"
+  "order_id" "integer"
+  "utm_channel" "text"
+  "geo_region" "text"
+  "started_at" "timestamp"
+
+  Note: ""
+}
+//Refs (based on the DBT Relationship Tests)
 Ref: "model.shop.f_order"."sk_customer" > "model.shop.d_customer"."sk_customer"
 Ref: "model.shop.f_order"."sk_product" > "model.shop.d_product"."sk_product"
 Ref: "model.shop.f_order"."sk_employee" > "model.shop.d_employee"."sk_employee"
@@ -129,8 +274,78 @@ TableGroup "shop.people" {
 }
 TableGroup "shop.staging" {
   "model.shop.stg_orders"
+  "model.shop.stg_customers"
+  "model.shop.stg_products"
+  "model.shop.stg_employees"
+  "model.shop.stg_inventory"
+  "model.shop.stg_warehouses"
+  "model.shop.stg_shipments"
+  "model.shop.stg_web_sessions"
+}
+TableGroup "shop.raw" {
+  "source.shop.orders"
+  "source.shop.products"
+  "source.shop.inventory"
+  "source.shop.warehouses"
+  "source.shop.shipments"
+}
+TableGroup "shop.crm" {
+  "source.shop.customers"
+  "source.shop.employees"
+}
+TableGroup "shop.web" {
+  "source.shop.web_sessions"
 }
 //Deps (based on the DBT DAG)
 Dep {
+  "model.shop.stg_customers" -> "model.shop.d_customer"
+}
+Dep {
+  "model.shop.stg_employees" -> "model.shop.d_employee"
+}
+Dep {
+  "model.shop.stg_products" -> "model.shop.d_product"
+}
+Dep {
+  "model.shop.stg_warehouses" -> "model.shop.d_warehouse"
+}
+Dep {
+  "model.shop.stg_customers" -> "model.shop.f_order"
   "model.shop.stg_orders" -> "model.shop.f_order"
+  "model.shop.stg_web_sessions" -> "model.shop.f_order"
+}
+Dep {
+  "model.shop.stg_employees" -> "model.shop.f_sales_rep"
+  "model.shop.stg_orders" -> "model.shop.f_sales_rep"
+}
+Dep {
+  "model.shop.stg_shipments" -> "model.shop.f_shipment"
+  "model.shop.stg_warehouses" -> "model.shop.f_shipment"
+}
+Dep {
+  "model.shop.stg_inventory" -> "model.shop.f_stock"
+}
+Dep {
+  "source.shop.customers" -> "model.shop.stg_customers"
+}
+Dep {
+  "source.shop.employees" -> "model.shop.stg_employees"
+}
+Dep {
+  "source.shop.inventory" -> "model.shop.stg_inventory"
+}
+Dep {
+  "source.shop.orders" -> "model.shop.stg_orders"
+}
+Dep {
+  "source.shop.products" -> "model.shop.stg_products"
+}
+Dep {
+  "source.shop.shipments" -> "model.shop.stg_shipments"
+}
+Dep {
+  "source.shop.warehouses" -> "model.shop.stg_warehouses"
+}
+Dep {
+  "source.shop.web_sessions" -> "model.shop.stg_web_sessions"
 }

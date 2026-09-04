@@ -1,4 +1,4 @@
-import { dbFromSearch, selectorFromSearch } from '@/app/persistence';
+import { dbFromSearch, selectorFromSearch, viewFromSearch } from '@/app/persistence';
 import { useAppStore } from '@/app/store';
 import { MANIFEST_URL, parseManifest, type DbEntry } from '@/app/bakedManifest';
 import { resolveBootstrap } from '@/app/resolveBootstrap';
@@ -58,14 +58,20 @@ export async function bootstrap(search: string, fallback: string): Promise<void>
   if (decision.kind === 'chooser') return; // UI shows the chooser; nothing loads yet
 
   if (decision.kind === 'load' && (await loadDatabase(decision.entry))) {
-    const sel = selectorFromSearch(search);
-    if (sel) useAppStore.getState().setSelector(sel);
+    applySearch(search);
     return;
   }
 
   // fallback (no databases) or a failed direct load: legacy default.dbml → sample
   const baked = await fetchBakedDbml();
   useAppStore.getState().loadDbmlSafe(baked ?? fallback);
+  applySearch(search);
+}
+
+// Apply ?s= and ?v= after a load (loading resets both).
+function applySearch(search: string): void {
   const sel = selectorFromSearch(search);
   if (sel) useAppStore.getState().setSelector(sel);
+  const view = viewFromSearch(search);
+  if (view) useAppStore.getState().setViewMode(view);
 }

@@ -1,4 +1,6 @@
-export type TableKind = 'fact' | 'dim' | 'other';
+import { isSourceTable } from '@/model/sourceFrontier';
+
+export type TableKind = 'fact' | 'dim' | 'source' | 'other';
 
 export interface KindPrefixes {
   fact: string[];
@@ -14,6 +16,7 @@ export function classifyTable(
   tableName: string,
   prefixes: KindPrefixes = DEFAULT_KIND_PREFIXES,
 ): TableKind {
+  if (isSourceTable(tableName)) return 'source';
   const segment = tableName.split('.').pop()?.toLowerCase() ?? '';
   if (prefixes.fact.some((p) => segment.startsWith(p.toLowerCase()))) return 'fact';
   if (prefixes.dim.some((p) => segment.startsWith(p.toLowerCase()))) return 'dim';

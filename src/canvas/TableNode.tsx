@@ -5,8 +5,8 @@ import { useAppStore } from '@/app/store';
 import { toggleTableCollapsed } from '@/app/selectorEdit';
 
 export function TableNode({ data }: NodeProps & { data: TableNodeData }) {
-  const accent = data.kind === 'fact' ? 'var(--fact)' : data.kind === 'dim' ? 'var(--dim)' : 'var(--line-2)';
-  const accentDim = data.kind === 'fact' ? 'var(--fact-dim)' : 'var(--dim-dim)';
+  const accent = data.kind === 'fact' ? 'var(--fact)' : data.kind === 'dim' ? 'var(--dim)' : data.kind === 'source' ? 'var(--ink-2)' : 'var(--line-2)';
+  const accentDim = data.kind === 'fact' ? 'var(--fact-dim)' : data.kind === 'dim' ? 'var(--dim-dim)' : 'var(--panel-2)';
   const selector = useAppStore((s) => s.selector);
   const setSelector = useAppStore((s) => s.setSelector);
 
@@ -38,7 +38,7 @@ export function TableNode({ data }: NodeProps & { data: TableNodeData }) {
           className="grid place-items-center flex-none rounded-[5px] text-[10px] font-bold"
           style={{ width: 19, height: 19, color: accent, background: accentDim }}
         >
-          {data.kind === 'fact' ? 'F' : data.kind === 'dim' ? 'D' : '·'}
+          {data.kind === 'fact' ? 'F' : data.kind === 'dim' ? 'D' : data.kind === 'source' ? 'S' : '·'}
         </span>
         <div className="min-w-0">
           <div className="text-[12.5px] font-semibold text-[var(--ink)] truncate">{data.label}</div>

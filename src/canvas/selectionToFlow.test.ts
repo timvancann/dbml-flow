@@ -1,5 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { loadModel } from '@/model/loadModel';
+import { computeSourceFrontier } from '@/model/sourceFrontier';
 import { resolveSelection } from '@/selection/resolveSelection';
 import {
   selectionToFlow,
@@ -425,5 +426,68 @@ describe('root-scoped lineage context (task 26)', () => {
     expect(nodes.some((n) => (n.data as CompactTableNodeData).isLineageContext)).toBe(false);
     // The stg_orders -> f_order intra-dbml lineage edge still renders.
     expect(edges.some((e) => e.id === `lin:${STG_ORDERS}->${F_ORDER}`)).toBe(true);
+  });
+});
+
+describe('sources view', () => {
+  const shopModel = loadModel(readFileSync('examples/shop.dbml', 'utf8'));
+  const frontier = computeSourceFrontier(shopModel);
+  const F_ORDER = 'model.shop.f_order';
+  const ORDERS = 'source.shop.orders';
+
+  it('~1f_order: one dotted edge per source into the root, sources as compact context nodes', () => {
+    const sel = resolveSelection(shopModel, '~1f_order');
+    const { nodes, edges } = selectionToFlow(shopModel, sel, undefined, frontier);
+
+    const srcEdges = edges.filter((e) => e.id.startsWith('src:'));
+    expect(srcEdges.map((e) => e.source).sort()).toEqual(['source.shop.customers', ORDERS, 'source.shop.web_sessions']);
+    expect(srcEdges.every((e) => e.target === F_ORDER && e.data.kind === 'lineage')).toBe(true);
+
+    const orders = nodes.find((n) => n.id === ORDERS)!;
+    expect(orders.type).toBe('tableCompact');
+    expect((orders.data as CompactTableNodeData).kind).toBe('source');
+    expect((orders.data as CompactTableNodeData).isLineageContext).toBe(true);
+  });
+
+  it('non-root neighbours get no source edges', () => {
+    const sel = resolveSelection(shopModel, '~1f_order');
+    const { edges } = selectionToFlow(shopModel, sel, undefined, frontier);
+    expect(edges.some((e) => e.id.startsWith('src:') && e.target === 'model.shop.d_customer')).toBe(false);
+  });
+
+  it('dedupes a source shared by two roots onto one node with two edges', () => {
+    const sel = resolveSelection(shopModel, 'f_order f_sales_rep');
+    const { nodes, edges } = selectionToFlow(shopModel, sel, undefined, frontier);
+    expect(nodes.filter((n) => n.id === ORDERS)).toHaveLength(1);
+    expect(edges.filter((e) => e.source === ORDERS).map((e) => e.target).sort()).toEqual([F_ORDER, 'model.shop.f_sales_rep']);
+  });
+
+  it('connects to a source that is already in the selection instead of adding a context node', () => {
+    const sel = resolveSelection(shopModel, `f_order ${ORDERS}`);
+    const { nodes, edges } = selectionToFlow(shopModel, sel, undefined, frontier);
+    const ordersNodes = nodes.filter((n) => n.id === ORDERS);
+    expect(ordersNodes).toHaveLength(1);
+    expect((ordersNodes[0].data as CompactTableNodeData).isLineageContext).toBeUndefined();
+    expect(edges.some((e) => e.id === `src:${ORDERS}->${F_ORDER}`)).toBe(true);
+  });
+
+  it('never anchors onto a super-group: the pure overview (empty selector) has no source edges', () => {
+    const sel = resolveSelection(shopModel, '');
+    expect(sel.superGroups.size).toBeGreaterThan(0);
+    const { edges } = selectionToFlow(shopModel, sel, undefined, frontier);
+    expect(edges.some((e) => e.id.startsWith('src:'))).toBe(false);
+  });
+
+  it('suppresses intra-dbml lineage edges and context pull-in when the frontier is given', () => {
+    const sel = resolveSelection(shopModel, '~1f_order');
+    const { nodes, edges } = selectionToFlow(shopModel, sel, { edges: shopModel.lineage }, frontier);
+    expect(edges.some((e) => e.id.startsWith('lin:'))).toBe(false);
+    expect(nodes.some((n) => n.id === 'model.shop.stg_orders')).toBe(false);
+  });
+
+  it('without the frontier, produces no src: edges', () => {
+    const sel = resolveSelection(shopModel, '~1f_order');
+    const { edges } = selectionToFlow(shopModel, sel);
+    expect(edges.some((e) => e.id.startsWith('src:'))).toBe(false);
   });
 });

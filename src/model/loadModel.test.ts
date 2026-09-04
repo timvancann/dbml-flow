@@ -29,7 +29,7 @@ describe('loadModel', () => {
 describe('loadModel: lineage', () => {
   it('carries Dep edges from the file onto the model', () => {
     const model = loadModel(readFileSync('examples/shop.dbml', 'utf8'));
-    expect(model.lineage).toEqual([{ fromTable: 'model.shop.stg_orders', toTable: 'model.shop.f_order' }]);
+    expect(model.lineage).toContainEqual({ fromTable: 'model.shop.stg_orders', toTable: 'model.shop.f_order' });
   });
 
   it('gives a file without Dep an empty lineage', () => {

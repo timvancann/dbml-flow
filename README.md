@@ -72,6 +72,12 @@ they connected?"
   current database and selector persist in the URL, so a view is just a link you can share.
   Lineage comes from DBML `Dep` blocks in the same file; dbterd emits them with
   `--entity-dependency` (see Related tools).
+- **Lineage and sources views**: when the file has `Dep` blocks the HUD gains a
+  three-way switch. `lineage` overlays 1-hop lineage around the selection as dotted edges;
+  `sources` collapses staging away and draws, for each selected table, the source tables it
+  is ultimately built from (tables named `source.*`, as dbterd emits with `-rt source -enf
+  resource.package.table`). Clicking a source selects every table it feeds, and the
+  Inspector lists sources and consumers. The view persists in the URL as `?v=`.
 
 The bundled demo data is a small synthetic `shop` schema. No real data ships in the repo.
 
