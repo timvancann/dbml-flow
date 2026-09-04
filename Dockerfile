@@ -1,5 +1,7 @@
 # ---- build ----
-FROM oven/bun:1 AS build
+# Build on the runner's native arch: dist/ is arch-independent, so only the nginx
+# stage below needs to be produced per target platform (no QEMU-emulated bun).
+FROM --platform=$BUILDPLATFORM oven/bun:1 AS build
 WORKDIR /app
 COPY package.json bun.lock ./
 RUN bun install --frozen-lockfile
