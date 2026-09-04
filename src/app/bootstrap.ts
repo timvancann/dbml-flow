@@ -2,7 +2,6 @@ import { dbFromSearch, selectorFromSearch } from '@/app/persistence';
 import { useAppStore } from '@/app/store';
 import { MANIFEST_URL, parseManifest, type DbEntry } from '@/app/bakedManifest';
 import { resolveBootstrap } from '@/app/resolveBootstrap';
-import { parseDbtManifest } from '@/model/parseDbtManifest';
 
 export function looksLikeDbml(text: string): boolean {
   const trimmed = text.trimStart();
@@ -30,27 +29,6 @@ export async function fetchBakedDbml(): Promise<string | null> {
   return fetchDbml(BAKED_DBML_URL);
 }
 
-// Sibling dbt manifest for a `<name>.dbml` file, via basename swap:
-// `dbml/shop.dbml` -> `dbml/shop.manifest.json`.
-export function siblingManifestUrl(dbmlUrl: string): string {
-  return dbmlUrl.replace(/\.dbml$/i, '') + '.manifest.json';
-}
-
-// 404 (nothing baked) is silently ignored.
-async function loadSiblingLineage(dbmlUrl: string): Promise<void> {
-  try {
-    const res = await fetch(siblingManifestUrl(dbmlUrl), { cache: 'no-store' });
-    if (!res.ok) return;
-    const json: unknown = await res.json();
-    const model = useAppStore.getState().model;
-    if (!model) return;
-    const { edges, external } = parseDbtManifest(json, model);
-    useAppStore.getState().setLineage({ edges, external });
-  } catch {
-    // no dbt manifest for this demo database; nothing to overlay
-  }
-}
-
 export async function fetchManifest(): Promise<DbEntry[]> {
   try {
     const res = await fetch(MANIFEST_URL, { cache: 'no-store' });
@@ -68,7 +46,6 @@ export async function loadDatabase(entry: DbEntry): Promise<boolean> {
   if (content === null) return false;
   useAppStore.getState().loadDbml(content);
   useAppStore.getState().setActiveDatabase(entry.id);
-  await loadSiblingLineage(dbFileUrl(entry.file));
   return true;
 }
 
@@ -89,7 +66,6 @@ export async function bootstrap(search: string, fallback: string): Promise<void>
   // fallback (no databases) or a failed direct load: legacy default.dbml → sample
   const baked = await fetchBakedDbml();
   useAppStore.getState().loadDbmlSafe(baked ?? fallback);
-  if (baked !== null) await loadSiblingLineage(BAKED_DBML_URL);
   const sel = selectorFromSearch(search);
   if (sel) useAppStore.getState().setSelector(sel);
 }

@@ -1,6 +1,6 @@
-import type { Group, Model, Ref, Table } from '@/model/types';
+import type { Group, LineageEdge, Model, Ref, Table } from '@/model/types';
 
-export function buildModel(tables: Table[], refs: Ref[]): Model {
+export function buildModel(tables: Table[], refs: Ref[], lineage: LineageEdge[] = []): Model {
   const tableMap = new Map<string, Table>();
   for (const table of tables) tableMap.set(table.name, table);
 
@@ -15,5 +15,5 @@ export function buildModel(tables: Table[], refs: Ref[]): Model {
     group.tables.push(table.name);
   }
 
-  return { tables: tableMap, refs, groups };
+  return { tables: tableMap, refs, groups, lineage };
 }

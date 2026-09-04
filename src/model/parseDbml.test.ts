@@ -49,3 +49,42 @@ describe('parseDbml', () => {
     expect(() => parseDbml('Table { broken')).toThrow(DbmlParseError);
   });
 });
+
+describe('parseDbml: Dep lineage', () => {
+  const tables = `
+Table "a" { "id" "integer" 
+ "x" "text" }
+Table "b" { "id" "integer" 
+ "y" "text" }
+Table "c" { "id" "integer" }
+`;
+
+  it('extracts one lineage edge per Dep edge, upstream to downstream', () => {
+    const { lineage } = parseDbml(tables + 'Dep {\n  "a" -> "c"\n  "b" -> "c"\n}\n');
+    expect(lineage).toEqual([
+      { fromTable: 'a', toTable: 'c' },
+      { fromTable: 'b', toTable: 'c' },
+    ]);
+  });
+
+  it('collects edges across several Dep blocks, including the short form', () => {
+    const { lineage } = parseDbml(tables + 'Dep { "a" -> "b" }\nDep: "b" -> "c"\n');
+    expect(lineage).toEqual([
+      { fromTable: 'a', toTable: 'b' },
+      { fromTable: 'b', toTable: 'c' },
+    ]);
+  });
+
+  it('degrades column-level edges to a single table-level edge', () => {
+    const { lineage } = parseDbml(tables + 'Dep {\n  "a"."id" -> "b"."id"\n  "a"."x" -> "b"."y"\n}\n');
+    expect(lineage).toEqual([{ fromTable: 'a', toTable: 'b' }]);
+  });
+
+  it('returns an empty lineage when the file has no Dep', () => {
+    expect(parseDbml(raw).lineage).toEqual([]);
+  });
+
+  it('throws DbmlParseError when a Dep endpoint is not a declared table', () => {
+    expect(() => parseDbml(tables + 'Dep { "a" -> "nope" }\n')).toThrow(DbmlParseError);
+  });
+});

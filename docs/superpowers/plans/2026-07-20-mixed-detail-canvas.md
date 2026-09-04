@@ -1793,9 +1793,11 @@ jq -c '{
 
 **Done already (committed):** `@dbml/core` 8.3.0 to 10.1.1 and `parseDbml` switched to `'dbmlv2'`. Verified a behavioral no-op: identical tables/refs/groups across `shop.dbml`, `pokemon.dbml` and both fixtures under both versions and both formats; v2 is no stricter than legacy on malformed input (refs to unknown tables/columns, duplicate table names, unknown TableGroup members are rejected by both). 210 tests green, tsc and build clean.
 
-#### Part A: dbterd (fork `timvancann/dbterd`)
+#### Part A: dbterd (fork `timvancann/dbterd`) [DONE 2026-09-04]
 
-**Prerequisite:** the fork is stale. HEAD is `38e7cfd` (2026-06-14); released 1.30.0 is newer and already carries the `--entity-group` / `TableGroup` emitter the fork lacks. Sync to upstream main before writing anything.
+**Status:** implemented on the fork at `~/repos/public/dbterd`, branch `feat/entity-dependency-dep-blocks`, open upstream as datnguye/dbterd#157. The flag shipped as `--entity-dependency` (not `--include-deps` as written below). Golden output: `tests/integration/expected_outputs/jaffle-shop/output-entity-dependency.dbml`. If upstream never merges, the fork is the supported generator. The design notes below are kept as the record of why.
+
+**Prerequisite (was):** the fork is stale. HEAD is `38e7cfd` (2026-06-14); released 1.30.0 is newer and already carries the `--entity-group` / `TableGroup` emitter the fork lacks. Sync to upstream main before writing anything.
 
 **Architecture found:** `executor` calls `algo_adapter.parse(manifest, catalog, **kwargs)` returning `(tables, relationships)`, then `target_adapter.run(tables, relationships, **kwargs)` which calls the abstract `build_erd`. That two-value shape is shared by all seven target adapters, so returning a third value would break every one of them.
 
@@ -1812,7 +1814,8 @@ jq -c '{
 #### Part B: dbml-flow
 
 1. `parseDbml` extracts `schema.deps[].edges[]` into `LineageEdge[]` (`upstream.tableName` to `downstream.tableName`). Column-level edges, if ever present, degrade to table-level.
-2. **Deletions this enables:** `parseDbtManifest.ts` and its test, the sibling-manifest fetch in `bootstrap.ts`, the `<name>.manifest.json` paired-file convention, multi-file manifest handling in `LoadButton`, and the entire phantom-node concept (`PhantomNode.tsx`, `LineageExternalEdge`, the `external` branch of `selectionToFlow`) — no endpoint can be unmatched, so there is nothing to render as a phantom. Retire them only once Part A produces real output; keep the manifest path working until then.
+2. **Deletions this enables:** `parseDbtManifest.ts` and its test, the sibling-manifest fetch in `bootstrap.ts`, the `<name>.manifest.json` paired-file convention, multi-file manifest handling in `LoadButton`, and the entire phantom-node concept (`PhantomNode.tsx`, `LineageExternalEdge`, the `external` branch of `selectionToFlow`) — no endpoint can be unmatched, so there is nothing to render as a phantom. **Decision (2026-09-04):** delete the manifest path outright in the same change, no transition period. The manifest was a hack to get lineage in before DBML could express it, and `Dep` covers everything it did. Lineage becomes part of `Model` (`model.lineage`), not a separately loaded overlay.
+   **Known demo regression:** with only nine tables declared, the collapse yields a single edge (`stg_orders -> f_order`); the dims' staging phantoms disappear. Step 4's "demo file with real multi-source fan-in" is what restores richness, by declaring staging and source tables in the example rather than faking them.
 3. Source view: walk the Dep graph upstream to nodes whose name marks them a source. With dbterd's default naming that is a `source.` name prefix; keep the predicate in one place so it can be swapped. If dbterd runs with staging unselected, the collapse in Part A step 2 already emits `"source.shop.raw" -> "model.shop.f_order"` directly and the walk is one hop.
 4. Carry forward from Task 27: granularity toggle, `viewMode` in the store and URL, Inspector source list, reverse lookup on click, and a demo file with real multi-source fan-in.
 
@@ -1820,4 +1823,6 @@ jq -c '{
 
 **Risk:** `Dep` is five weeks old. `@dbml/core` is pinned exactly; expect the syntax to move.
 
-- [ ] Part A on the synced fork, then Part B.
+- [x] Part A on the fork (`--entity-dependency`, PR #157).
+- [x] Part B steps 1 and 2: `parseDbml` reads `Dep` into `model.lineage`; manifest sidecar, `parseDbtManifest`, phantom nodes and multi-file upload deleted. Commit `feat: lineage from DBML Dep blocks, drop dbt manifest sidecar`.
+- [ ] Part B steps 3 and 4: source view, plus the richer demo file.

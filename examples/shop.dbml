@@ -130,3 +130,7 @@ TableGroup "shop.people" {
 TableGroup "shop.staging" {
   "model.shop.stg_orders"
 }
+//Deps (based on the DBT DAG)
+Dep {
+  "model.shop.stg_orders" -> "model.shop.f_order"
+}

@@ -1,5 +1,5 @@
 import { Parser } from '@dbml/core';
-import type { Column, Ref, Table } from '@/model/types';
+import type { Column, LineageEdge, Ref, Table } from '@/model/types';
 
 export class DbmlParseError extends Error {
   constructor(message: string) {
@@ -8,7 +8,7 @@ export class DbmlParseError extends Error {
   }
 }
 
-export function parseDbml(content: string): { tables: Table[]; refs: Ref[] } {
+export function parseDbml(content: string): { tables: Table[]; refs: Ref[]; lineage: LineageEdge[] } {
   let db: any;
   try {
     // @dbml/core's typings are loose; the runtime signature is parse(content, format).
@@ -74,7 +74,25 @@ export function parseDbml(content: string): { tables: Table[]; refs: Ref[] } {
     }
   }
 
-  return { tables, refs };
+  // Native Dep blocks: upstream -> downstream. Column-level edges (if any)
+  // degrade to table level, so identical table pairs are deduped.
+  const lineage: LineageEdge[] = [];
+  const lineageSeen = new Set<string>();
+  for (const schema of schemas) {
+    for (const dep of schema.deps ?? []) {
+      for (const edge of dep.edges ?? []) {
+        const fromTable = edge.upstream?.tableName;
+        const toTable = edge.downstream?.tableName;
+        if (!fromTable || !toTable) continue;
+        const key = `${fromTable}->${toTable}`;
+        if (lineageSeen.has(key)) continue;
+        lineageSeen.add(key);
+        lineage.push({ fromTable, toTable });
+      }
+    }
+  }
+
+  return { tables, refs, lineage };
 }
 
 function extractNote(note: unknown): string | undefined {

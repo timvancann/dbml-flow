@@ -10,7 +10,6 @@ import { layoutGraph } from '@/canvas/layout';
 import { TableNode } from '@/canvas/TableNode';
 import { TableNodeCompact } from '@/canvas/TableNodeCompact';
 import { GroupNode } from '@/canvas/GroupNode';
-import { PhantomNode } from '@/canvas/PhantomNode';
 import { RefEdge } from '@/canvas/RefEdge';
 import { HopStepper } from '@/app/HopStepper';
 import { useAppStore } from '@/app/store';
@@ -29,7 +28,7 @@ const hudButtonStyle: CSSProperties = {
   backdropFilter: 'blur(6px)',
 };
 
-const nodeTypes = { table: TableNode, tableCompact: TableNodeCompact, superGroup: GroupNode, phantom: PhantomNode };
+const nodeTypes = { table: TableNode, tableCompact: TableNodeCompact, superGroup: GroupNode };
 const edgeTypes = { ref: RefEdge };
 
 export function Canvas({
@@ -53,7 +52,6 @@ export function Canvas({
   const pathMode = useAppStore((s) => s.pathMode);
   const pathStart = useAppStore((s) => s.pathStart);
   const pickPathTable = useAppStore((s) => s.pickPathTable);
-  const lineage = useAppStore((s) => s.lineage);
   const showLineage = useAppStore((s) => s.showLineage);
   const setShowLineage = useAppStore((s) => s.setShowLineage);
   const { getNodes, fitView } = useReactFlow();
@@ -110,7 +108,7 @@ export function Canvas({
     const raw = selectionToFlow(
       model,
       resolveSelection(model, selector, adjacency),
-      showLineage ? (lineage ?? undefined) : undefined,
+      showLineage ? { edges: model.lineage } : undefined,
     );
 
     layoutGraph(raw.nodes as FlowNode[], raw.edges as never).then((laid) => {
@@ -148,7 +146,7 @@ export function Canvas({
 
     return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [model, selector, adjacency, lineage, showLineage]);
+  }, [model, selector, adjacency, showLineage]);
 
   const tableCount = nodes.filter(
     (n) =>
@@ -229,10 +227,10 @@ export function Canvas({
           <b style={{ color: 'var(--dim)', fontWeight: 600 }}>{tableCount}</b> tables ·{' '}
           <b style={{ color: 'var(--dim)', fontWeight: 600 }}>{edgeCount}</b> refs visible
         </div>
-        {lineage !== null && (
+        {model.lineage.length > 0 && (
           <button
             onClick={() => setShowLineage(!showLineage)}
-            title="Toggle dbt lineage overlay (dotted)"
+            title="Toggle lineage overlay from Dep blocks (dotted)"
             style={{
               fontFamily: '"Spline Sans Mono", monospace',
               fontSize: 11,

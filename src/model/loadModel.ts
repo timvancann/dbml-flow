@@ -4,7 +4,7 @@ import { recoverCommentGroups } from '@/model/recoverCommentGroups';
 import type { Model } from '@/model/types';
 
 export function loadModel(content: string): Model {
-  const { tables, refs } = parseDbml(content);
+  const { tables, refs, lineage } = parseDbml(content);
   const commentGroups = recoverCommentGroups(content);
 
   for (const table of tables) {
@@ -13,5 +13,5 @@ export function loadModel(content: string): Model {
     }
   }
 
-  return buildModel(tables, refs);
+  return buildModel(tables, refs, lineage);
 }

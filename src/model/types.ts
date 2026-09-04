@@ -27,29 +27,21 @@ export interface Group {
   tables: string[];
 }
 
-// A dbt-manifest-derived lineage edge: fromTable is the upstream parent,
-// toTable is the downstream child (dbt's parent_map direction).
+// A lineage edge from a DBML `Dep` block: fromTable is the upstream table,
+// toTable the downstream one. Both are always declared tables (the parser
+// rejects a Dep whose endpoint is not).
 export interface LineageEdge {
   fromTable: string;
   toTable: string;
 }
 
-// A 1-hop upstream parent of a matched table that has no dbml counterpart
-// (e.g. a staging model or source) — rendered as a phantom node.
-export interface LineageExternalEdge {
-  fromNode: string;
-  fromLabel: string;
-  resourceType: string;
-  toTable: string;
-}
-
 export interface Lineage {
   edges: LineageEdge[];
-  external: LineageExternalEdge[];
 }
 
 export interface Model {
   tables: Map<string, Table>;
   refs: Ref[];
   groups: Map<string, Group>;
+  lineage: LineageEdge[];
 }

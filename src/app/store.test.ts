@@ -4,7 +4,7 @@ import { useAppStore } from '@/app/store';
 const dbml = readFileSync('src/model/__fixtures__/grouped.dbml', 'utf8');
 
 beforeEach(() => {
-  useAppStore.setState({ model: null, selector: '', selectedTable: null, pathMode: false, pathStart: null, loadError: null, databases: null, activeDb: null, lineage: null, showLineage: false });
+  useAppStore.setState({ model: null, selector: '', selectedTable: null, pathMode: false, pathStart: null, loadError: null, databases: null, activeDb: null, showLineage: false });
 });
 
 describe('useAppStore', () => {
@@ -56,12 +56,15 @@ describe('useAppStore', () => {
     expect(useAppStore.getState().activeDb).toBeNull();
   });
 
-  it('setLineage turns showLineage on', () => {
-    expect(useAppStore.getState().showLineage).toBe(false);
-    const lineage = { edges: [{ fromTable: 'a', toTable: 'b' }], external: [] };
-    useAppStore.getState().setLineage(lineage);
+  it('loading a file with Dep edges turns showLineage on', () => {
+    useAppStore.getState().loadDbml(readFileSync('examples/shop.dbml', 'utf8'));
     expect(useAppStore.getState().showLineage).toBe(true);
-    expect(useAppStore.getState().lineage).toEqual(lineage);
+  });
+
+  it('loading a file without Dep edges leaves showLineage off', () => {
+    useAppStore.setState({ showLineage: true });
+    useAppStore.getState().loadDbml(dbml);
+    expect(useAppStore.getState().showLineage).toBe(false);
   });
 
   it('path mode: first pick sets start, second pick builds path selector', () => {

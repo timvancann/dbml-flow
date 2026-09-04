@@ -70,8 +70,8 @@ they connected?"
 - **Bring your own schema** — upload a `.dbml` file in-app, or bake one or more into the
   Docker image (below); with several baked, the app opens a picker to choose a database. The
   current database and selector persist in the URL, so a view is just a link you can share.
-  To pair a dbt lineage overlay with a database, name it `<name>.manifest.json` next to
-  `<name>.dbml`; both baked images and the file picker load the pair together.
+  Lineage comes from DBML `Dep` blocks in the same file; dbterd emits them with
+  `--entity-dependency` (see Related tools).
 
 The bundled demo data is a small synthetic `shop` schema. No real data ships in the repo.
 
@@ -84,7 +84,7 @@ bun install
 just dev          # or: bun run dev   → http://localhost:5173
 ```
 
-The dev server stages and serves the same bundled demo databases (and lineage) as the live demo.
+The dev server stages and serves the same bundled demo databases as the live demo.
 
 If you use `pre-commit`, install both hook types so commit-msg linting (commitizen)
 actually runs: `just hooks` (or `pre-commit install --hook-type pre-commit --hook-type
@@ -191,6 +191,9 @@ static DBML file with no database connection and no backend.
   DBML in, exploration out — no database connections, no accounts, no server.
 - **[dbterd](https://github.com/datnguye/dbterd)** — generates DBML straight from a dbt
   catalog, which is what makes DBML Flow useful for analytics engineers in the first place.
+  Run it with `--entity-dependency` to get `Dep` blocks (model-to-model lineage) in the same
+  file; until that lands upstream it is available from
+  [timvancann/dbterd](https://github.com/timvancann/dbterd/pull/157).
 - **[dbdiagram](https://dbdiagram.io/), [dbdocs](https://dbdocs.io/),
   [DrawSQL](https://drawsql.app/), [drawDB](https://drawdb.app/),
   [ChartDB](https://chartdb.io/)** — excellent for *designing and generating* schemas.

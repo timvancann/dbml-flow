@@ -1,6 +1,5 @@
 import { readFileSync } from 'node:fs';
 import { loadModel } from '@/model/loadModel';
-import { parseDbtManifest } from '@/model/parseDbtManifest';
 import { resolveSelection } from '@/selection/resolveSelection';
 import {
   selectionToFlow,
@@ -286,7 +285,7 @@ describe('lineage overlay', () => {
   const D_CUSTOMER = 'model.shop.d_customer';
   const D_PRODUCT = 'model.shop.d_product';
 
-  const lineage = (edges: { fromTable: string; toTable: string }[]) => ({ edges, external: [] });
+  const lineage = (edges: { fromTable: string; toTable: string }[]) => ({ edges });
 
   it('emits a table-level lineage edge tagged with kind: lineage', () => {
     const sel = resolveSelection(model, 'f_order+');
@@ -383,88 +382,15 @@ describe('lineage overlay', () => {
   });
 });
 
-describe('phantom upstream nodes', () => {
-  const externalOf = (
-    entries: { fromNode: string; fromLabel: string; resourceType: string; toTable: string }[],
-  ) => ({ edges: [], external: entries });
-
-  it('emits a phantom node + dotted edge for a visible table', () => {
-    const sel = resolveSelection(model, 'f_order+');
-    const { nodes, edges } = selectionToFlow(
-      model,
-      sel,
-      externalOf([{ fromNode: 'model.shop.stg_orders', fromLabel: 'stg_orders', resourceType: 'model', toTable: FACT }]),
-    );
-    const phantom = nodes.find((n) => n.id === 'phantom:model.shop.stg_orders')!;
-    expect(phantom).toBeDefined();
-    expect(phantom.type).toBe('phantom');
-    expect(phantom.data).toEqual({ name: 'model.shop.stg_orders', label: 'stg_orders', resourceType: 'model' });
-    expect(phantom.width).toBe(200);
-    expect(phantom.height).toBe(44);
-
-    const edge = edges.find((e) => e.id === `ext:model.shop.stg_orders->${FACT}`)!;
-    expect(edge).toBeDefined();
-    expect(edge.source).toBe('phantom:model.shop.stg_orders');
-    expect(edge.target).toBe(FACT);
-    expect(edge.data.kind).toBe('lineage');
-  });
-
-  it('dedupes one phantom per external parent across multiple children', () => {
-    const sel = resolveSelection(model, 'f_order+ f_shipment+');
-    const { nodes, edges } = selectionToFlow(
-      model,
-      sel,
-      externalOf([
-        { fromNode: 'model.shop.stg_employees', fromLabel: 'stg_employees', resourceType: 'model', toTable: FACT },
-        {
-          fromNode: 'model.shop.stg_employees',
-          fromLabel: 'stg_employees',
-          resourceType: 'model',
-          toTable: 'model.shop.f_shipment',
-        },
-      ]),
-    );
-    const phantoms = nodes.filter((n) => n.id === 'phantom:model.shop.stg_employees');
-    expect(phantoms).toHaveLength(1);
-    const phantomEdges = edges.filter((e) => e.source === 'phantom:model.shop.stg_employees');
-    expect(phantomEdges).toHaveLength(2);
-  });
-
-  it('skips a phantom whose child anchors to a super-group', () => {
-    // d_product is dotted-collapsed into shop.inventory under this selector.
-    const sel = resolveSelection(model, '.g:* group:sales');
-    const { nodes, edges } = selectionToFlow(
-      model,
-      sel,
-      externalOf([
-        { fromNode: 'model.shop.stg_products', fromLabel: 'stg_products', resourceType: 'model', toTable: DIM },
-      ]),
-    );
-    expect(nodes.some((n) => n.type === 'phantom')).toBe(false);
-    expect(edges.some((e) => e.id.startsWith('ext:'))).toBe(false);
-  });
-
-  it('produces no phantoms when lineage is omitted', () => {
-    const sel = resolveSelection(model, 'f_order+');
-    const { nodes, edges } = selectionToFlow(model, sel);
-    expect(nodes.some((n) => n.type === 'phantom')).toBe(false);
-    expect(edges.some((e) => e.id.startsWith('ext:'))).toBe(false);
-  });
-});
-
 describe('root-scoped lineage context (task 26)', () => {
   const shopModel = loadModel(readFileSync('examples/shop.dbml', 'utf8'));
-  const shopManifest = JSON.parse(readFileSync('examples/shop.manifest.json', 'utf8'));
-  const shopLineage = parseDbtManifest(shopManifest, shopModel);
+  const shopLineage = { edges: shopModel.lineage };
   const F_ORDER = 'model.shop.f_order';
   const STG_ORDERS = 'model.shop.stg_orders';
 
-  it('~1f_order pulls in stg_orders as a lineage context node with a dotted edge, no dim phantoms', () => {
+  it('~1f_order pulls in stg_orders as a lineage context node with a dotted edge', () => {
     const sel = resolveSelection(shopModel, '~1f_order');
-    const { nodes, edges } = selectionToFlow(shopModel, sel, {
-      edges: shopLineage.edges,
-      external: shopLineage.external,
-    });
+    const { nodes, edges } = selectionToFlow(shopModel, sel, shopLineage);
 
     const context = nodes.find((n) => n.id === STG_ORDERS)!;
     expect(context).toBeDefined();
@@ -477,17 +403,13 @@ describe('root-scoped lineage context (task 26)', () => {
     expect(contextEdge!.target).toBe(F_ORDER);
     expect(contextEdge!.data.kind).toBe('lineage');
 
-    // The dims (d_customer/d_product/d_employee) are 2 hops out and not roots,
-    // so their staging phantoms must not render.
-    expect(nodes.some((n) => n.type === 'phantom')).toBe(false);
+    // Every rendered node is a declared table: Dep endpoints cannot be external.
+    for (const n of nodes) expect(shopModel.tables.has(n.id)).toBe(true);
   });
 
   it('~1stg_orders pulls in f_order as a lineage context node', () => {
     const sel = resolveSelection(shopModel, '~1stg_orders');
-    const { nodes, edges } = selectionToFlow(shopModel, sel, {
-      edges: shopLineage.edges,
-      external: shopLineage.external,
-    });
+    const { nodes, edges } = selectionToFlow(shopModel, sel, shopLineage);
 
     const context = nodes.find((n) => n.id === F_ORDER)!;
     expect(context).toBeDefined();
@@ -495,18 +417,13 @@ describe('root-scoped lineage context (task 26)', () => {
     expect(edges.some((e) => e.id === `lin:${STG_ORDERS}->${F_ORDER}`)).toBe(true);
   });
 
-  it('g:* is unchanged: every table is a root, all phantoms/lineage render, zero context nodes', () => {
+  it('g:* is unchanged: every table is a root, lineage renders, zero context nodes', () => {
     const sel = resolveSelection(shopModel, 'g:*');
     expect(sel.roots).toEqual(sel.nodes);
-    const { nodes, edges } = selectionToFlow(shopModel, sel, {
-      edges: shopLineage.edges,
-      external: shopLineage.external,
-    });
+    const { nodes, edges } = selectionToFlow(shopModel, sel, shopLineage);
 
     expect(nodes.some((n) => (n.data as CompactTableNodeData).isLineageContext)).toBe(false);
     // The stg_orders -> f_order intra-dbml lineage edge still renders.
     expect(edges.some((e) => e.id === `lin:${STG_ORDERS}->${F_ORDER}`)).toBe(true);
-    // Staging phantoms for the dims (stg_customers/products/employees/etc) still render.
-    expect(nodes.filter((n) => n.type === 'phantom').length).toBeGreaterThan(0);
   });
 });

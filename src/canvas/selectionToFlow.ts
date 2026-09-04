@@ -42,20 +42,11 @@ export interface GroupNodeData {
   refCount: number;
 }
 
-export interface PhantomNodeData {
-  name: string;
-  label: string;
-  resourceType: string;
-}
-
-export const PHANTOM_W = 200;
-export const PHANTOM_H = 44;
-
 export interface FlowNode {
   id: string;
-  type: 'table' | 'tableCompact' | 'superGroup' | 'phantom';
+  type: 'table' | 'tableCompact' | 'superGroup';
   position: { x: number; y: number };
-  data: TableNodeData | CompactTableNodeData | GroupNodeData | PhantomNodeData;
+  data: TableNodeData | CompactTableNodeData | GroupNodeData;
   width: number;
   height: number;
 }
@@ -302,39 +293,8 @@ export function selectionToFlow(
     });
   }
 
-  // Phantom upstream nodes: 1-hop non-dbml parents (staging/sources) of a
-  // matched table, but only when that table anchors table-level (a rendered
-  // full/compact node) and is itself a root — never onto a super-group.
-  const phantomSeen = new Set<string>();
-  const phantomNodes: FlowNode[] = [];
-  const phantomEdges: FlowEdge[] = [];
-  for (const ext of lineage?.external ?? []) {
-    if (!selection.nodes.has(ext.toTable)) continue;
-    if (memberToGroup.has(ext.toTable)) continue;
-    if (!selection.roots.has(ext.toTable)) continue;
-
-    const phantomId = `phantom:${ext.fromNode}`;
-    if (!phantomSeen.has(phantomId)) {
-      phantomSeen.add(phantomId);
-      phantomNodes.push({
-        id: phantomId,
-        type: 'phantom',
-        position: { x: 0, y: 0 },
-        data: { name: ext.fromNode, label: ext.fromLabel, resourceType: ext.resourceType },
-        width: PHANTOM_W,
-        height: PHANTOM_H,
-      });
-    }
-    phantomEdges.push({
-      id: `ext:${ext.fromNode}->${ext.toTable}`,
-      source: phantomId,
-      target: ext.toTable,
-      data: { count: 1, kind: 'lineage' },
-    });
-  }
-
   return {
-    nodes: [...nodes, ...phantomNodes],
-    edges: [...merged.values(), ...lineageEdges, ...phantomEdges],
+    nodes,
+    edges: [...merged.values(), ...lineageEdges],
   };
 }
