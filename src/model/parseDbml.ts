@@ -12,7 +12,7 @@ export function parseDbml(content: string): { tables: Table[]; refs: Ref[] } {
   let db: any;
   try {
     // @dbml/core's typings are loose; the runtime signature is parse(content, format).
-    db = (Parser as any).parse(content, 'dbml');
+    db = (Parser as any).parse(content, 'dbmlv2');
   } catch (error: any) {
     const msg = error?.message ?? error?.diags?.[0]?.message ?? String(error);
     throw new DbmlParseError(typeof msg === 'string' ? msg : JSON.stringify(msg));
