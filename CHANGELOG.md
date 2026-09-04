@@ -1,3 +1,9 @@
+## v0.5.0 (2026-09-04)
+
+### Feat
+
+- publish multi-arch Docker image (linux/amd64 + linux/arm64)
+
 ## v0.4.0 (2026-07-21)
 
 ### Feat
