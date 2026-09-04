@@ -1727,7 +1727,10 @@ State `hoveredNode: string | null` set by ReactFlow `onNodeMouseEnter`/`onNodeMo
 
 ---
 
-### Task 27: Source view mode (transitive source attribution)
+### Task 27: Source view mode (transitive source attribution) [SUPERSEDED by Task 28]
+
+**Superseded.** DBML gained a native `Dep` construct in `@dbml/core` 9.0.0 (2026-07-30), so the lineage does not need to come from a dbt manifest sidecar at all. Task 28 replaces this. The source-view UX requirements below (granularity toggle, Inspector list, reverse lookup, example realism) still stand and are carried forward; only the data path changes.
+
 
 **Files:** Modify `src/model/types.ts`, `src/model/parseDbtManifest.ts` (+test), `src/app/store.ts` (+test), `src/app/persistence.ts` (+test), `src/canvas/selectionToFlow.ts` (+test), `src/canvas/Canvas.tsx`, `src/app/Inspector.tsx`, `examples/shop.manifest.json`, `README.md`. Create `src/model/sourceFrontier.ts` (+test), `src/canvas/SourceNode.tsx`.
 
@@ -1773,3 +1776,48 @@ jq -c '{
 **Acceptance:** `bunx vitest run` + tsc green; `?s=f_order&v=sources` shows f_order with three distinct source nodes and no staging phantoms; switching granularity splits `raw` into its tables; `v=refs` output is byte-identical to today; clicking a source node selects every table it feeds.
 
 - [ ] Implement (TDD for sourceFrontier and parseDbtManifest); verify per acceptance; commit `feat: source view mode`. DO NOT PUSH.
+
+---
+
+### Task 28: Lineage from DBML `Dep`, emitted by dbterd
+
+**Supersedes Task 27's data path.** DBML now expresses lineage natively, so the dbt manifest sidecar can be retired entirely.
+
+**Verified facts (probed against the real package, not the docs):**
+1. `Dep` landed in `@dbml/core` 9.0.0 (2026-07-30); latest is 10.1.1 (2026-08-14). This repo was on 8.3.0 (2026-06-16), which predates it.
+2. These forms parse: `Dep { a -> b }`, `Dep: a -> b`, `Dep name { ... }`, `Dep name [color: #rrggbb] { ... Note: '...' }`, column-level `a.col -> b.col`, multi-edge fan-in, schema-qualified `raw.orders -> x`, and quoted dotted names `"source.shop.raw" -> "model.shop.f_order"`.
+3. `metadata: {k: "v"}` appears in `dep.d.ts` but is REJECTED by the grammar ("Invalid value for setting 'metadata'"). Use the Dep name or `Note:` instead.
+4. **Every Dep endpoint must resolve to a declared `Table`.** An unknown endpoint is a fatal parse error (code 4000), not a warning. This is the constraint the whole design turns on.
+5. The legacy PEG parser (format `'dbml'`) rejects a `Dep` block outright. Format `'dbmlv2'` is required.
+6. Quoted dotted names work as endpoints, so dbterd's default `--entity-name-format resource.package.model` needs NO change. This retires Task 27's objection that adopting sources would force a global rename.
+
+**Done already (committed):** `@dbml/core` 8.3.0 to 10.1.1 and `parseDbml` switched to `'dbmlv2'`. Verified a behavioral no-op: identical tables/refs/groups across `shop.dbml`, `pokemon.dbml` and both fixtures under both versions and both formats; v2 is no stricter than legacy on malformed input (refs to unknown tables/columns, duplicate table names, unknown TableGroup members are rejected by both). 210 tests green, tsc and build clean.
+
+#### Part A: dbterd (fork `timvancann/dbterd`)
+
+**Prerequisite:** the fork is stale. HEAD is `38e7cfd` (2026-06-14); released 1.30.0 is newer and already carries the `--entity-group` / `TableGroup` emitter the fork lacks. Sync to upstream main before writing anything.
+
+**Architecture found:** `executor` calls `algo_adapter.parse(manifest, catalog, **kwargs)` returning `(tables, relationships)`, then `target_adapter.run(tables, relationships, **kwargs)` which calls the abstract `build_erd`. That two-value shape is shared by all seven target adapters, so returning a third value would break every one of them.
+
+**Design (no signature changes):** add `depends_on: list[str] = field(default_factory=list)` to the `Table` dataclass in `dbterd/core/models.py`. Targets that do not care simply ignore it; only `dbml.py` reads it.
+
+1. `get_table` / `get_table_from_metadata` capture the raw upstream ids. `manifest.nodes[id].depends_on.nodes` is already used at `algo.py:477`, so the data is in hand; guard with `getattr` since source nodes have no `depends_on`.
+2. New `resolve_dependencies` step in `parse_artifacts`, run AFTER `filter_tables_based_on_selection` but against the PRE-filter node set, so it can collapse through unselected intermediates. For each selected node, walk upstream until another selected node is reached; that is the emitted edge. Memoize, and guard the walk with a visited stack.
+3. Because step 2 only ever yields selected nodes, every endpoint is a declared `Table` by construction. That satisfies verified fact 4 without any validation pass.
+4. **Entity-name collisions.** Under the default `entity_name_format`, several dbt nodes collapse onto one entity name (all of `source.shop.raw.*` become `source.shop.raw`). Dedupe edges by entity-name pair AFTER name resolution, and drop self-edges, or a single source with two tables feeding one model emits a self-loop.
+5. `dbml.py` `build_erd` gains a `//Deps` section behind a new `--include-deps` flag (default off: it changes output, and no other target supports it). Endpoint quoting must honour `--omit-entity-name-quotes`, same as `format_table` and `format_relationship`.
+6. Column-level `Dep` is OUT of scope: dbt's manifest carries no column lineage without SQL parsing.
+7. **Tests.** The repo has golden integration outputs (`tests/integration/expected_outputs/*/output.dbml`); with the flag off those stay byte-identical, which is the regression guarantee. Add flag-on goldens plus unit tests for the collapse walk (transitive through unselected staging, fan-in dedupe, collision dedupe, self-edge drop, cycle guard).
+
+#### Part B: dbml-flow
+
+1. `parseDbml` extracts `schema.deps[].edges[]` into `LineageEdge[]` (`upstream.tableName` to `downstream.tableName`). Column-level edges, if ever present, degrade to table-level.
+2. **Deletions this enables:** `parseDbtManifest.ts` and its test, the sibling-manifest fetch in `bootstrap.ts`, the `<name>.manifest.json` paired-file convention, multi-file manifest handling in `LoadButton`, and the entire phantom-node concept (`PhantomNode.tsx`, `LineageExternalEdge`, the `external` branch of `selectionToFlow`) — no endpoint can be unmatched, so there is nothing to render as a phantom. Retire them only once Part A produces real output; keep the manifest path working until then.
+3. Source view: walk the Dep graph upstream to nodes whose name marks them a source. With dbterd's default naming that is a `source.` name prefix; keep the predicate in one place so it can be swapped. If dbterd runs with staging unselected, the collapse in Part A step 2 already emits `"source.shop.raw" -> "model.shop.f_order"` directly and the walk is one hop.
+4. Carry forward from Task 27: granularity toggle, `viewMode` in the store and URL, Inspector source list, reverse lookup on click, and a demo file with real multi-source fan-in.
+
+**Trade-off to accept:** collapsing in dbterd bakes the selection into the file. Wanting staging visible later means re-running dbterd. For a CI-generated artifact that is the right call.
+
+**Risk:** `Dep` is five weeks old. `@dbml/core` is pinned exactly; expect the syntax to move.
+
+- [ ] Part A on the synced fork, then Part B.
