@@ -1724,3 +1724,35 @@ State `hoveredNode: string | null` set by ReactFlow `onNodeMouseEnter`/`onNodeMo
 6. Acceptance: `bunx vitest run` + tsc green; browser: `?s=~1f_order` shows stg_orders as dashed compact card with arrowed dotted edge and NO stg_customers/products/employees phantoms; `?s=~1stg_orders` shows orders phantom -> stg_orders -> f_order context card; `g:*` unchanged.
 
 - [ ] Implement (TDD); verify; commit `feat: lineage context scoped to selection roots`. DO NOT PUSH.
+
+---
+
+### Task 27: Source view mode (transitive source attribution)
+
+**Files:** Modify `src/model/types.ts`, `src/model/parseDbtManifest.ts` (+test), `src/app/store.ts` (+test), `src/app/persistence.ts` (+test), `src/canvas/selectionToFlow.ts` (+test), `src/canvas/Canvas.tsx`, `src/app/Inspector.tsx`, `examples/shop.manifest.json`, `README.md`. Create `src/model/sourceFrontier.ts` (+test), `src/canvas/SourceNode.tsx`.
+
+**Question this answers:** "which sources is this fact table built from?" Today lineage stops one hop up, so a mart shows its staging phantom and never its source. Sources are the thing an analytics engineer actually reasons about (blast radius, contracts, ingestion ownership).
+
+**Investigation findings (binding constraints):**
+1. dbterd encodes a source ONLY as the entity name prefix, and only when run with `-rt source` AND an `--entity-name-format` containing `resource`. Node names are built by splitting the dbt `unique_id`: `resource.package.model` maps to parts 0/1/2, so `source.shop.raw.customers` renders as `source.shop.raw` and every table of source `raw` collapses onto one node. Table-level source nodes require `-enf resource.package.table` or `database.schema.table`.
+2. dbterd emits `Ref:` lines only from dbt `relationship` tests. It NEVER emits a model-to-source edge. A source table in the DBML is therefore an isolated node, and the DBML alone cannot answer which source feeds which fact.
+3. Consequence: this feature is manifest-driven. The DBML source encoding is optional enrichment (it lets a source render with columns and a schema group), never the substrate.
+
+**Binding requirements:**
+1. **`sourceFrontier.ts`** — pure, no React, no model dependency beyond the resolved table names. Given `parent_map`, `sources` and `nodes`, return for each dbt node id the set of frontier ancestor ids, memoized, with a visited-stack cycle guard (dbt DAGs are acyclic; guard anyway so a malformed manifest cannot hang the app). Frontier = a node in `sources`, a node whose `resource_type` is `seed`, or a node with no parents. Traversal passes THROUGH dbml-matched tables (a fact inherits its dims' sources).
+2. **Types:** `SourceRef { id: string; sourceName: string; tableName: string; label: string; kind: 'source' | 'seed' | 'root' }`. `Lineage` gains `sources: Map<string, SourceRef[]>` keyed by resolved dbml table name. `parseDbtManifest` populates it for every matched table.
+3. **Store:** replace `showLineage: boolean` with `viewMode: 'refs' | 'lineage' | 'sources'`. `setLineage` keeps auto-enabling the lineage view. Loading a new dbml resets to `'refs'`.
+4. **URL:** `persistence.ts` gains `v` (`searchWith({ db, selector, view })`); omitted for the default `'refs'` so existing shared links are byte-identical.
+5. **`selectionToFlow` in `sources` mode:** ref edges render exactly as today (dbml stays primary). For each root, emit one node per distinct source at the current granularity, id `src:${key}`, type `'source'`, plus a dotted edge `srcof:${key}->${table}`. Dedupe a source shared by several roots onto ONE node. Never anchor onto a super-group; no source nodes on the pure overview. Intra-dbml lineage edges and phantoms are suppressed in this mode (they are the thing being collapsed).
+6. **Granularity toggle:** default aggregates on `sourceName`; a HUD toggle switches to `sourceName.tableName`. Aggregated nodes carry a count chip when they stand for more than one source table.
+7. **`SourceNode.tsx`:** visually distinct from PhantomNode and from fact/dim coding (amber/cyan are taken). Solid 1px border `var(--line-2)`, low-alpha panel background, the source name in Spline Sans Mono 12px, a small uppercase `source` / `seed` / `root` tag, right-side source handle. No emoji, no em-dashes.
+8. **Inspector:** when a table is selected and `lineage.sources` has an entry, render a collapsible "Sources" list (source name, table, kind) alongside Columns and Foreign keys. This is the lookup affordance; the canvas is the overview affordance.
+9. **Reverse lookup:** expose the inverted map (source key to the tables it feeds) from `parseDbtManifest`. Clicking a source node rewrites the selector to the union of tables it feeds, so "what breaks if `raw.orders` is late" is one click. A `src:` selector atom in `matchPiece` is explicitly OUT of scope here; the inverted map is what a later task would build on.
+10. **Example realism:** the shipped manifest has one source and a strict 1:1 source-staging-mart chain, so every table resolves to exactly one source and the view demonstrates nothing. Add at least two more sources (e.g. `crm`, `web`) and real fan-in, so `f_order` resolves to three sources and `f_shipment` to two. Keep the DAG honest: sources to staging to dims/facts, no fabricated mart-to-mart edges (Task 25's rule still holds).
+11. **README:** document the source view in Features, and note the dbterd flags that make source tables show up as DBML entities (`-rt source`, `-enf resource.package.table`). No em-dashes.
+
+**Tests:** sourceFrontier — transitive walk through staging, fan-in dedupe, seed and parentless-root frontier kinds, cycle guard terminates. parseDbtManifest — `sources` map populated per matched table, inverted map correct. selectionToFlow — source node emitted per root, deduped across roots, suppressed for super-group members, absent in `refs`/`lineage` modes, granularity toggle changes node ids and counts. persistence — `v` round-trips and is omitted for `refs`. store — viewMode reset on load.
+
+**Acceptance:** `bunx vitest run` + tsc green; `?s=f_order&v=sources` shows f_order with three distinct source nodes and no staging phantoms; switching granularity splits `raw` into its tables; `v=refs` output is byte-identical to today; clicking a source node selects every table it feeds.
+
+- [ ] Implement (TDD for sourceFrontier and parseDbtManifest); verify per acceptance; commit `feat: source view mode`. DO NOT PUSH.
