@@ -1749,7 +1749,24 @@ State `hoveredNode: string | null` set by ReactFlow `onNodeMouseEnter`/`onNodeMo
 8. **Inspector:** when a table is selected and `lineage.sources` has an entry, render a collapsible "Sources" list (source name, table, kind) alongside Columns and Foreign keys. This is the lookup affordance; the canvas is the overview affordance.
 9. **Reverse lookup:** expose the inverted map (source key to the tables it feeds) from `parseDbtManifest`. Clicking a source node rewrites the selector to the union of tables it feeds, so "what breaks if `raw.orders` is late" is one click. A `src:` selector atom in `matchPiece` is explicitly OUT of scope here; the inverted map is what a later task would build on.
 10. **Example realism:** the shipped manifest has one source and a strict 1:1 source-staging-mart chain, so every table resolves to exactly one source and the view demonstrates nothing. Add at least two more sources (e.g. `crm`, `web`) and real fan-in, so `f_order` resolves to three sources and `f_shipment` to two. Keep the DAG honest: sources to staging to dims/facts, no fabricated mart-to-mart edges (Task 25's rule still holds).
-11. **README:** document the source view in Features, and note the dbterd flags that make source tables show up as DBML entities (`-rt source`, `-enf resource.package.table`). No em-dashes.
+11. **README:** document the source view in Features. Do NOT recommend `-rt source`: see the CI decision below. No em-dashes.
+
+**CI-side decision (settled):** dbterd runs on every CI build, so adding flags is cheap, but `-rt source` is NOT wanted.
+- Table-level source entities would also require changing `--entity-name-format` away from the default `resource.package.model` (source unique_ids split to parts 0/1/2, so every table of source `raw` collapses onto `source.shop.raw`). That renames every table in the file, breaking saved selectors, shared `?s=` URLs and `classifyTable`'s `f_`/`d_` prefixes. Unacceptable blast radius.
+- dbterd emits `Ref:` only from relationship tests, so source entities carry zero refs: isolated cards that inflate the overview and the HUD count, and that `neighbors()` cannot traverse (it seeds only from nodes present in the adjacency maps).
+- A source existing both as a dbml table and as a manifest-derived overlay node would need deduping for no new information.
+- Source columns in the Inspector are the only real gain, and they additionally require `catalog.json` (dbterd reads source columns from `catalog.sources`; without `dbt docs generate` each source gets one blank column). Deferred as an additive follow-up.
+
+**CI-side change that IS wanted (separate, no app code):** emit a slim lineage sidecar instead of the full manifest. `parseDbtManifest` reads only `parent_map`, `nodes[*].{resource_type,name,schema,alias}` and `sources[*]`; `asMetaRecord`/`asParentMap` already default to `{}`, so a three-key document parses today unchanged. Verified against `examples/shop.manifest.json`: identical `edges`, `external`, `matchedTables` and `unmatchedNodes` at 46% of the size (far less on a real project, where `raw_code`/`compiled_code` dominate). This matters because `bootstrap.ts` fetches and `JSON.parse`s the whole file on every page load.
+
+```bash
+jq -c '{
+  metadata: {project_name: .metadata.project_name},
+  parent_map,
+  nodes:   (.nodes   | map_values({resource_type, name, schema, alias})),
+  sources: (.sources | map_values({resource_type, name, schema, source_name}))
+}' target/manifest.json > <name>.manifest.json
+```
 
 **Tests:** sourceFrontier — transitive walk through staging, fan-in dedupe, seed and parentless-root frontier kinds, cycle guard terminates. parseDbtManifest — `sources` map populated per matched table, inverted map correct. selectionToFlow — source node emitted per root, deduped across roots, suppressed for super-group members, absent in `refs`/`lineage` modes, granularity toggle changes node ids and counts. persistence — `v` round-trips and is omitted for `refs`. store — viewMode reset on load.
 
