@@ -319,25 +319,32 @@ describe('lineage overlay', () => {
     expect(edges.some((e) => e.id.startsWith('lin:'))).toBe(false);
   });
 
-  it('drops a lineage edge when either endpoint anchors to a super-group', () => {
+  it('anchors a lineage edge onto a super-group when one endpoint is collapsed into it', () => {
     // d_product is dotted-collapsed into shop.inventory; f_order stays a full
-    // table node. The lineage edge must never anchor onto the group node.
+    // table node. The edge runs group -> table.
     const sel = resolveSelection(model, '.g:* group:sales');
     const { edges } = selectionToFlow(model, sel, lineage([{ fromTable: D_PRODUCT, toTable: FACT }]));
-    expect(edges.some((e) => e.id.startsWith('lin:'))).toBe(false);
+    const lin = edges.find((e) => e.id.startsWith('lin:'))!;
+    expect(lin).toBeDefined();
+    expect(lin.source).toBe('shop.inventory');
+    expect(lin.target).toBe(FACT);
+    expect(lin.data.kind).toBe('lineage');
   });
 
-  it('never aggregates lineage onto super-group nodes on the overview', () => {
+  it('on the overview, aggregates lineage between super-groups with a count and drops intra-group edges', () => {
     const sel = resolveSelection(model, '');
     const { edges } = selectionToFlow(
       model,
       sel,
       lineage([
-        { fromTable: D_CUSTOMER, toTable: FACT },
+        { fromTable: D_CUSTOMER, toTable: FACT }, // both in shop.sales: dropped
         { fromTable: D_PRODUCT, toTable: FACT },
+        { fromTable: 'model.shop.d_warehouse', toTable: FACT },
       ]),
     );
-    expect(edges.some((e) => e.id.startsWith('lin:'))).toBe(false);
+    const lin = edges.filter((e) => e.id.startsWith('lin:'));
+    expect(lin).toHaveLength(1);
+    expect(lin[0]).toMatchObject({ source: 'shop.inventory', target: 'shop.sales', data: { count: 2, kind: 'lineage' } });
   });
 
   it('keeps lineage between two rendered full tables', () => {
@@ -471,11 +478,28 @@ describe('sources view', () => {
     expect(edges.some((e) => e.id === `src:${ORDERS}->${F_ORDER}`)).toBe(true);
   });
 
-  it('never anchors onto a super-group: the pure overview (empty selector) has no source edges', () => {
+  it('on the overview, aggregates source edges between super-groups with a count', () => {
     const sel = resolveSelection(shopModel, '');
     expect(sel.superGroups.size).toBeGreaterThan(0);
     const { edges } = selectionToFlow(shopModel, sel, undefined, frontier);
-    expect(edges.some((e) => e.id.startsWith('src:'))).toBe(false);
+    const src = edges.filter((e) => e.id.startsWith('src:'));
+    const pair = (a: string, b: string) => src.find((e) => e.source === a && e.target === b);
+    // sales: f_order <- orders(raw), customers(crm), web_sessions(web); f_shipment <- shipments, warehouses (raw); d_customer <- customers (crm)
+    expect(pair('shop.raw', 'shop.sales')?.data.count).toBe(3);
+    expect(pair('shop.crm', 'shop.sales')?.data.count).toBe(2);
+    expect(pair('shop.web', 'shop.sales')?.data.count).toBe(1);
+    expect(pair('shop.raw', 'shop.staging')?.data.count).toBe(5);
+    // no edge ever points into a source group, and none is intra-group
+    expect(src.every((e) => e.source !== e.target && !['shop.raw', 'shop.crm', 'shop.web'].includes(e.target))).toBe(true);
+  });
+
+  it('mixed detail: a super-group of sources points at a full table root', () => {
+    const sel = resolveSelection(shopModel, 'f_order .group:raw');
+    const { edges, nodes } = selectionToFlow(shopModel, sel, undefined, frontier);
+    const lin = edges.find((e) => e.source === 'shop.raw' && e.target === F_ORDER);
+    expect(lin?.data.count).toBe(1);
+    // customers (crm) is not in the selection, so it still appears as a context card
+    expect(nodes.some((n) => n.id === 'source.shop.customers')).toBe(true);
   });
 
   it('suppresses intra-dbml lineage edges and context pull-in when the frontier is given', () => {

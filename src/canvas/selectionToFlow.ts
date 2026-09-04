@@ -278,35 +278,39 @@ export function selectionToFlow(
 
   const effectiveNodes = contextTables.size > 0 ? new Set([...selection.nodes, ...contextTables]) : selection.nodes;
 
-  // Lineage is a table-level-only overlay: it never anchors onto a super-group
-  // node, so it can never aggregate with (and paint over) the ref edges above.
-  // Root-gated: an edge renders only if at least one endpoint is a root.
-  const lineageSeen = new Set<string>();
-  const lineageEdges: FlowEdge[] = [];
-  for (const le of lineage?.edges ?? []) {
-    if (!effectiveNodes.has(le.fromTable) || !effectiveNodes.has(le.toTable)) continue;
-    if (memberToGroup.has(le.fromTable) || memberToGroup.has(le.toTable)) continue;
-    if (!selection.roots.has(le.fromTable) && !selection.roots.has(le.toTable)) continue;
-
-    const key = `${le.fromTable}|${le.toTable}`;
-    if (lineageSeen.has(key)) continue;
-    lineageSeen.add(key);
-    lineageEdges.push({
-      id: `lin:${le.fromTable}->${le.toTable}`,
-      source: le.fromTable,
-      target: le.toTable,
-      data: { count: 1, kind: 'lineage' },
-    });
+  // Dotted edges (lineage overlay or sources view) anchor like ref edges: a
+  // table collapsed into a super-group anchors onto the group node, and edges
+  // that land on the same node pair aggregate with a count. Intra-node edges
+  // are dropped. They never share an id with a ref edge, so they never merge.
+  const dotted = new Map<string, FlowEdge>();
+  function addDotted(prefix: 'lin' | 'src', fromTable: string, toTable: string): void {
+    const source = anchor(fromTable).node;
+    const target = anchor(toTable).node;
+    if (source === target) return;
+    const key = `${prefix}:${source}->${target}`;
+    const existing = dotted.get(key);
+    if (existing) existing.data.count += 1;
+    else dotted.set(key, { id: key, source, target, data: { count: 1, kind: 'lineage' } });
   }
 
-  // Sources view: one dotted edge per (transitive) source into each root that
-  // renders as a table node. A source outside the selection is added once as a
-  // compact context card; one already selected is connected to directly.
-  const sourceEdges: FlowEdge[] = [];
+  // Root-gated: an edge renders only if at least one endpoint is a root. A
+  // super-group's members count as roots here (the group itself was selected;
+  // they are only kept out of selection.roots so context pull-in skips them).
+  const isRoot = (table: string) => selection.roots.has(table) || memberToGroup.has(table);
+
+  for (const le of lineage?.edges ?? []) {
+    if (!effectiveNodes.has(le.fromTable) || !effectiveNodes.has(le.toTable)) continue;
+    if (!isRoot(le.fromTable) && !isRoot(le.toTable)) continue;
+    addDotted('lin', le.fromTable, le.toTable);
+  }
+
+  // Sources view: each root gets an edge from every source it is transitively
+  // built from. A source outside the selection is added once as a compact
+  // context card; one already selected anchors like any other table.
   const addedSources = new Set<string>();
   if (sources) {
-    for (const root of selection.roots) {
-      if (!selection.nodes.has(root) || memberToGroup.has(root)) continue;
+    for (const root of selection.nodes) {
+      if (!isRoot(root)) continue;
       for (const source of sources.sourcesOf.get(root) ?? []) {
         if (!selection.nodes.has(source) && !addedSources.has(source)) {
           const data = buildTableNodeData(model, source, fkByTable, referencedByTable);
@@ -321,18 +325,13 @@ export function selectionToFlow(
             height: COMPACT_H,
           });
         }
-        sourceEdges.push({
-          id: `src:${source}->${root}`,
-          source,
-          target: root,
-          data: { count: 1, kind: 'lineage' },
-        });
+        addDotted('src', source, root);
       }
     }
   }
 
   return {
     nodes,
-    edges: [...merged.values(), ...lineageEdges, ...sourceEdges],
+    edges: [...merged.values(), ...dotted.values()],
   };
 }
