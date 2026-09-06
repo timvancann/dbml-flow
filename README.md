@@ -70,8 +70,8 @@ they connected?"
 - **Bring your own schema** — upload a `.dbml` file in-app, or bake one or more into the
   Docker image (below); with several baked, the app opens a picker to choose a database. The
   current database and selector persist in the URL, so a view is just a link you can share.
-  Lineage comes from DBML `Dep` blocks in the same file; dbterd emits them with
-  `--entity-dependency` (see Related tools).
+  Lineage comes from DBML `Dep` blocks in the same file; dbterd 1.31+ emits them with
+  `--with-dependencies` (see Related tools).
 - **Lineage and sources views**: when the file has `Dep` blocks the HUD gains a
   three-way switch. `lineage` overlays 1-hop lineage around the selection as dotted edges;
   `sources` collapses staging away and draws, for each selected table, the source tables it
@@ -197,9 +197,12 @@ static DBML file with no database connection and no backend.
   DBML in, exploration out — no database connections, no accounts, no server.
 - **[dbterd](https://github.com/datnguye/dbterd)** — generates DBML straight from a dbt
   catalog, which is what makes DBML Flow useful for analytics engineers in the first place.
-  Run it with `--entity-dependency` to get `Dep` blocks (model-to-model lineage) in the same
-  file; until that lands upstream it is available from
-  [timvancann/dbterd](https://github.com/timvancann/dbterd/pull/157).
+  Since 1.31.0, `--with-dependencies` adds `Dep` blocks (the dbt DAG, collapsed through
+  unselected nodes) to the same file, which is what drives the lineage and sources views:
+
+  ```bash
+  dbterd run -t dbml --with-dependencies -rt model -rt source -enf resource.package.table
+  ```
 - **[dbdiagram](https://dbdiagram.io/), [dbdocs](https://dbdocs.io/),
   [DrawSQL](https://drawsql.app/), [drawDB](https://drawdb.app/),
   [ChartDB](https://chartdb.io/)** — excellent for *designing and generating* schemas.

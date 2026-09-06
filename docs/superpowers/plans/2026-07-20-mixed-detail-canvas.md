@@ -1795,7 +1795,7 @@ jq -c '{
 
 #### Part A: dbterd (fork `timvancann/dbterd`) [DONE 2026-09-04]
 
-**Status:** implemented on the fork at `~/repos/public/dbterd`, branch `feat/entity-dependency-dep-blocks`, open upstream as datnguye/dbterd#157. The flag shipped as `--entity-dependency` (not `--include-deps` as written below). Golden output: `tests/integration/expected_outputs/jaffle-shop/output-entity-dependency.dbml`. If upstream never merges, the fork is the supported generator. The design notes below are kept as the record of why.
+**Status:** merged upstream as datnguye/dbterd#157 and released in dbterd 1.31.0 (2026-09-06). The flag shipped as `--with-dependencies` / `-wd` (renamed in review from `--entity-dependency`; the plan below said `--include-deps`). Golden output: `tests/integration/expected_outputs/jaffle-shop/output-with-dependencies.dbml`, generated with `-wd -rt model -rt source -enf resource.package.table`. The fork at `~/repos/public/dbterd` is only needed for future upstream work. The design notes below are kept as the record of why.
 
 **Prerequisite (was):** the fork is stale. HEAD is `38e7cfd` (2026-06-14); released 1.30.0 is newer and already carries the `--entity-group` / `TableGroup` emitter the fork lacks. Sync to upstream main before writing anything.
 
@@ -1823,6 +1823,6 @@ jq -c '{
 
 **Risk:** `Dep` is five weeks old. `@dbml/core` is pinned exactly; expect the syntax to move.
 
-- [x] Part A on the fork (`--entity-dependency`, PR #157).
+- [x] Part A upstream (`--with-dependencies`, PR #157, dbterd 1.31.0).
 - [x] Part B steps 1 and 2: `parseDbml` reads `Dep` into `model.lineage`; manifest sidecar, `parseDbtManifest`, phantom nodes and multi-file upload deleted. Commit `feat: lineage from DBML Dep blocks, drop dbt manifest sidecar`.
 - [x] Part B steps 3 and 4 (2026-09-04): `sourceFrontier.ts` (source = first segment `source`, transitive walk, inverse map), `viewMode` refs/lineage/sources in store and `?v=`, sources view in `selectionToFlow`, Inspector source and feeds lists, click a source to select its consumers, demo file with 8 sources across `shop.raw`/`shop.crm`/`shop.web` and real fan-in. Left out on purpose: aggregation toggle (needs the source name, see the dbterd follow-up) and a Sources chip in the rail.
