@@ -1,3 +1,12 @@
+## v0.6.0 (2026-09-07)
+
+### Feat
+
+- anchor lineage and source edges onto super-groups
+- sources view from Dep lineage
+- lineage from DBML Dep blocks, drop dbt manifest sidecar
+- upgrade @dbml/core to 10.1.1 and parse via dbmlv2
+
 ## v0.5.0 (2026-09-04)
 
 ### Feat
