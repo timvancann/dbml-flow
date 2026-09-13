@@ -4,6 +4,7 @@ import { useAppStore } from '@/app/store';
 import { classifyTable } from '@/canvas/classifyTable';
 import { focusSelector } from '@/app/focus';
 import { computeSourceFrontier } from '@/model/sourceFrontier';
+import type { Column } from '@/model/types';
 
 const seg = (name: string) => name.split('.').pop() ?? name;
 
@@ -53,22 +54,9 @@ export function Inspector() {
       <Row k="Primary key" v={table.columns.some((c) => c.isPrimaryKey) ? '✓' : '—'} />
       <Row k="In selection" v={inSelection ? 'yes' : 'no'} vColor={inSelection ? 'var(--dim)' : 'var(--ink-3)'} />
 
-      <Collapsible label="Columns" count={table.columns.length} defaultOpen={table.columns.length <= 12}>
+      <Collapsible key={selectedTable} label="Columns" count={table.columns.length} defaultOpen={table.columns.length <= 12}>
         {table.columns.map((col) => (
-          <div key={col.name} className="flex items-center gap-2 py-1 px-2 text-[12px]">
-            <span style={{ fontFamily: '"Spline Sans Mono", monospace' }} className="text-[var(--ink-2)] flex-1 truncate">
-              {col.name}
-            </span>
-            <span style={{ fontFamily: '"Spline Sans Mono", monospace', color: 'var(--ink-3)', fontSize: '11px' }} className="shrink-0">
-              {col.type}
-            </span>
-            {col.isPrimaryKey && (
-              <span style={{ color: 'var(--pk)', fontSize: '13px' }} title="Primary key">⚷</span>
-            )}
-            {fkColNames.has(col.name) && (
-              <span style={{ color: 'var(--fact)', fontSize: '13px' }} title="Foreign key">⌖</span>
-            )}
-          </div>
+          <ColumnRow key={col.name} col={col} isFk={fkColNames.has(col.name)} />
         ))}
       </Collapsible>
 
@@ -93,6 +81,39 @@ export function Inspector() {
 
       {sources.length > 0 && <RefList title="Built from sources" arrow="┄" refs={sources} onClick={focus} />}
       {feeds.length > 0 && <RefList title="Feeds (blast radius)" arrow="┄" refs={feeds} onClick={add} />}
+    </div>
+  );
+}
+
+function ColumnRow({ col, isFk }: { col: Column; isFk: boolean }) {
+  const [expanded, setExpanded] = useState(false);
+  const hasNote = Boolean(col.note);
+  return (
+    <div
+      data-testid="column-row"
+      onClick={hasNote ? () => setExpanded((v) => !v) : undefined}
+      className={`py-1 px-2 text-[12px] rounded-md ${hasNote ? 'cursor-pointer hover:bg-[var(--panel-2)]' : ''}`}
+    >
+      <div className="flex items-center gap-2">
+        <span style={{ fontFamily: '"Spline Sans Mono", monospace' }} className="text-[var(--ink-2)] flex-1 truncate">
+          {col.name}
+        </span>
+        <span style={{ fontFamily: '"Spline Sans Mono", monospace', color: 'var(--ink-3)', fontSize: '11px' }} className="shrink-0">
+          {col.type}
+        </span>
+        {col.isPrimaryKey && (
+          <span style={{ color: 'var(--pk)', fontSize: '13px' }} title="Primary key">⚷</span>
+        )}
+        {isFk && (
+          <span style={{ color: 'var(--fact)', fontSize: '13px' }} title="Foreign key">⌖</span>
+        )}
+      </div>
+      {hasNote && (
+        <div
+          data-clamped={expanded ? 'false' : 'true'}
+          className={`text-[11.5px] leading-[1.45] mt-px ${expanded ? 'text-[var(--ink-2)] whitespace-pre-line' : 'text-[var(--ink-3)] truncate'}`}
+        >{col.note}</div>
+      )}
     </div>
   );
 }
