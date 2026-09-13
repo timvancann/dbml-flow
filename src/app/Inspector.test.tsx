@@ -30,18 +30,21 @@ describe('Inspector notes', () => {
     expect(screen.queryByTestId('table-note')).toBeNull();
   });
 
-  it('shows a column note clamped, and unclamps it on click', () => {
+  it('hides a column note until the row is clicked', () => {
     useAppStore.getState().setSelectedTable('users');
     render(<Inspector />);
-    const note = screen.getByText('Internal identifier, never exposed.');
-    expect(note).toHaveAttribute('data-clamped', 'true');
+    expect(screen.queryByText('Internal identifier, never exposed.')).toBeNull();
     fireEvent.click(screen.getByText('id'));
-    expect(note).toHaveAttribute('data-clamped', 'false');
+    expect(screen.getByText('Internal identifier, never exposed.')).toBeInTheDocument();
+    fireEvent.click(screen.getByText('id'));
+    expect(screen.queryByText('Internal identifier, never exposed.')).toBeNull();
   });
 
-  it('renders no note line for a column without a note', () => {
+  it('marks only documented columns with a chevron', () => {
     useAppStore.getState().setSelectedTable('users');
     render(<Inspector />);
-    expect(screen.getByText('email').closest('[data-testid="column-row"]')!.querySelector('[data-clamped]')).toBeNull();
+    const rows = screen.getAllByTestId('column-row');
+    expect(rows[0]).toHaveTextContent('▸');
+    expect(rows[1]).not.toHaveTextContent('▸');
   });
 });

@@ -32,6 +32,7 @@ export function Inspector() {
 
   // Build a set of FK column names for this table
   const fkColNames = new Set<string>(outbound.flatMap((r) => r.fromColumns));
+  const anyNotes = table.columns.some((c) => c.note);
 
   return (
     <div className="p-4">
@@ -56,7 +57,7 @@ export function Inspector() {
 
       <Collapsible key={selectedTable} label="Columns" count={table.columns.length} defaultOpen={table.columns.length <= 12}>
         {table.columns.map((col) => (
-          <ColumnRow key={col.name} col={col} isFk={fkColNames.has(col.name)} />
+          <ColumnRow key={col.name} col={col} isFk={fkColNames.has(col.name)} chevronSlot={anyNotes} />
         ))}
       </Collapsible>
 
@@ -85,16 +86,21 @@ export function Inspector() {
   );
 }
 
-function ColumnRow({ col, isFk }: { col: Column; isFk: boolean }) {
-  const [expanded, setExpanded] = useState(false);
+function ColumnRow({ col, isFk, chevronSlot }: { col: Column; isFk: boolean; chevronSlot: boolean }) {
+  const [open, setOpen] = useState(false);
   const hasNote = Boolean(col.note);
   return (
     <div
       data-testid="column-row"
-      onClick={hasNote ? () => setExpanded((v) => !v) : undefined}
+      onClick={hasNote ? () => setOpen((v) => !v) : undefined}
       className={`py-1 px-2 text-[12px] rounded-md ${hasNote ? 'cursor-pointer hover:bg-[var(--panel-2)]' : ''}`}
     >
       <div className="flex items-center gap-2">
+        {chevronSlot && (
+          <span className="w-2 shrink-0 text-[10px] text-[var(--ink-3)]" aria-hidden>
+            {hasNote ? (open ? '▾' : '▸') : ''}
+          </span>
+        )}
         <span style={{ fontFamily: '"Spline Sans Mono", monospace' }} className="text-[var(--ink-2)] flex-1 truncate">
           {col.name}
         </span>
@@ -108,10 +114,10 @@ function ColumnRow({ col, isFk }: { col: Column; isFk: boolean }) {
           <span style={{ color: 'var(--fact)', fontSize: '13px' }} title="Foreign key">⌖</span>
         )}
       </div>
-      {hasNote && (
+      {hasNote && open && (
         <div
-          data-clamped={expanded ? 'false' : 'true'}
-          className={`text-[11.5px] leading-[1.45] mt-px ${expanded ? 'text-[var(--ink-2)] whitespace-pre-line' : 'text-[var(--ink-3)] truncate'}`}
+          data-testid="column-note"
+          className="mt-1 mb-0.5 ml-4 pl-2.5 border-l border-[var(--line-2)] text-[11.5px] leading-[1.45] text-[var(--ink-3)] whitespace-pre-line"
         >{col.note}</div>
       )}
     </div>
