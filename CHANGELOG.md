@@ -1,3 +1,15 @@
+## v0.7.0 (2026-09-13)
+
+### Feat
+
+- mark documented columns with a chevron and expand the note on click
+- show column notes in inspector, clamped with click to expand
+- render table note in inspector
+
+### Fix
+
+- Enhance accessibility and interactivity in Inspector
+
 ## v0.6.0 (2026-09-07)
 
 ### Feat
