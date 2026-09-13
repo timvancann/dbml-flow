@@ -92,7 +92,16 @@ function ColumnRow({ col, isFk, chevronSlot }: { col: Column; isFk: boolean; che
   return (
     <div
       data-testid="column-row"
+      role={hasNote ? 'button' : undefined}
+      tabIndex={hasNote ? 0 : undefined}
+      aria-expanded={hasNote ? open : undefined}
       onClick={hasNote ? () => setOpen((v) => !v) : undefined}
+      onKeyDown={hasNote ? (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          setOpen((v) => !v);
+        }
+      } : undefined}
       className={`py-1 px-2 text-[12px] rounded-md ${hasNote ? 'cursor-pointer hover:bg-[var(--panel-2)]' : ''}`}
     >
       <div className="flex items-center gap-2">
