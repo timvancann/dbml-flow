@@ -4,6 +4,7 @@ import { useAppStore } from '@/app/store';
 import { classifyTable } from '@/canvas/classifyTable';
 import { focusSelector } from '@/app/focus';
 import { computeSourceFrontier } from '@/model/sourceFrontier';
+import type { Column } from '@/model/types';
 
 const seg = (name: string) => name.split('.').pop() ?? name;
 
@@ -31,6 +32,7 @@ export function Inspector() {
 
   // Build a set of FK column names for this table
   const fkColNames = new Set<string>(outbound.flatMap((r) => r.fromColumns));
+  const anyNotes = table.columns.some((c) => c.note);
 
   return (
     <div className="p-4">
@@ -41,28 +43,21 @@ export function Inspector() {
         className="text-[14px] text-[var(--ink)] mt-[7px] mb-[2px] hover:text-[var(--dim)]"
       >{seg(selectedTable)}</button>
       <div className="text-[11.5px] text-[var(--ink-3)] mb-[14px]">{table.group ?? 'ungrouped'}</div>
+      {table.note && (
+        <p
+          data-testid="table-note"
+          className="text-[12px] leading-[1.5] text-[var(--ink-2)] mb-[14px] whitespace-pre-line"
+        >{table.note}</p>
+      )}
 
       <Row k="Columns" v={String(table.columns.length)} />
       <Row k="Foreign keys" v={String(outbound.length)} />
       <Row k="Primary key" v={table.columns.some((c) => c.isPrimaryKey) ? '✓' : '—'} />
       <Row k="In selection" v={inSelection ? 'yes' : 'no'} vColor={inSelection ? 'var(--dim)' : 'var(--ink-3)'} />
 
-      <Collapsible label="Columns" count={table.columns.length} defaultOpen={table.columns.length <= 12}>
+      <Collapsible key={selectedTable} label="Columns" count={table.columns.length} defaultOpen={table.columns.length <= 12}>
         {table.columns.map((col) => (
-          <div key={col.name} className="flex items-center gap-2 py-1 px-2 text-[12px]">
-            <span style={{ fontFamily: '"Spline Sans Mono", monospace' }} className="text-[var(--ink-2)] flex-1 truncate">
-              {col.name}
-            </span>
-            <span style={{ fontFamily: '"Spline Sans Mono", monospace', color: 'var(--ink-3)', fontSize: '11px' }} className="shrink-0">
-              {col.type}
-            </span>
-            {col.isPrimaryKey && (
-              <span style={{ color: 'var(--pk)', fontSize: '13px' }} title="Primary key">⚷</span>
-            )}
-            {fkColNames.has(col.name) && (
-              <span style={{ color: 'var(--fact)', fontSize: '13px' }} title="Foreign key">⌖</span>
-            )}
-          </div>
+          <ColumnRow key={col.name} col={col} isFk={fkColNames.has(col.name)} chevronSlot={anyNotes} />
         ))}
       </Collapsible>
 
@@ -87,6 +82,53 @@ export function Inspector() {
 
       {sources.length > 0 && <RefList title="Built from sources" arrow="┄" refs={sources} onClick={focus} />}
       {feeds.length > 0 && <RefList title="Feeds (blast radius)" arrow="┄" refs={feeds} onClick={add} />}
+    </div>
+  );
+}
+
+function ColumnRow({ col, isFk, chevronSlot }: { col: Column; isFk: boolean; chevronSlot: boolean }) {
+  const [open, setOpen] = useState(false);
+  const hasNote = Boolean(col.note);
+  return (
+    <div
+      data-testid="column-row"
+      role={hasNote ? 'button' : undefined}
+      tabIndex={hasNote ? 0 : undefined}
+      aria-expanded={hasNote ? open : undefined}
+      onClick={hasNote ? () => setOpen((v) => !v) : undefined}
+      onKeyDown={hasNote ? (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          setOpen((v) => !v);
+        }
+      } : undefined}
+      className={`py-1 px-2 text-[12px] rounded-md ${hasNote ? 'cursor-pointer hover:bg-[var(--panel-2)]' : ''}`}
+    >
+      <div className="flex items-center gap-2">
+        {chevronSlot && (
+          <span className="w-2 shrink-0 text-[10px] text-[var(--ink-3)]" aria-hidden>
+            {hasNote ? (open ? '▾' : '▸') : ''}
+          </span>
+        )}
+        <span style={{ fontFamily: '"Spline Sans Mono", monospace' }} className="text-[var(--ink-2)] flex-1 truncate">
+          {col.name}
+        </span>
+        <span style={{ fontFamily: '"Spline Sans Mono", monospace', color: 'var(--ink-3)', fontSize: '11px' }} className="shrink-0">
+          {col.type}
+        </span>
+        {col.isPrimaryKey && (
+          <span style={{ color: 'var(--pk)', fontSize: '13px' }} title="Primary key">⚷</span>
+        )}
+        {isFk && (
+          <span style={{ color: 'var(--fact)', fontSize: '13px' }} title="Foreign key">⌖</span>
+        )}
+      </div>
+      {hasNote && open && (
+        <div
+          data-testid="column-note"
+          className="mt-1 mb-0.5 ml-4 pl-2.5 border-l border-[var(--line-2)] text-[11.5px] leading-[1.45] text-[var(--ink-3)] whitespace-pre-line"
+        >{col.note}</div>
+      )}
     </div>
   );
 }
