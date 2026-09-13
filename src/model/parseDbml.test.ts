@@ -88,3 +88,19 @@ Table "c" { "id" "integer" }
     expect(() => parseDbml(tables + 'Dep { "a" -> "nope" }\n')).toThrow(DbmlParseError);
   });
 });
+
+describe('parseDbml notes', () => {
+  it('carries table and column notes into the model', () => {
+    const { tables } = parseDbml(`
+Table users {
+  id text [pk, note: 'Internal identifier.']
+  email text
+  Note: 'Every person who can sign in.'
+}
+`);
+    const users = tables.find((t) => t.name === 'users')!;
+    expect(users.note).toBe('Every person who can sign in.');
+    expect(users.columns.find((c) => c.name === 'id')!.note).toBe('Internal identifier.');
+    expect(users.columns.find((c) => c.name === 'email')!.note).toBeUndefined();
+  });
+});

@@ -41,6 +41,12 @@ export function Inspector() {
         className="text-[14px] text-[var(--ink)] mt-[7px] mb-[2px] hover:text-[var(--dim)]"
       >{seg(selectedTable)}</button>
       <div className="text-[11.5px] text-[var(--ink-3)] mb-[14px]">{table.group ?? 'ungrouped'}</div>
+      {table.note && (
+        <p
+          data-testid="table-note"
+          className="text-[12px] leading-[1.5] text-[var(--ink-2)] mb-[14px] whitespace-pre-line"
+        >{table.note}</p>
+      )}
 
       <Row k="Columns" v={String(table.columns.length)} />
       <Row k="Foreign keys" v={String(outbound.length)} />
