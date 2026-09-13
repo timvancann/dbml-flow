@@ -5,16 +5,16 @@ Table "model.shop.f_order" {
   "sk_product" "integer"
   "sk_employee" "integer"
   "order_number" "text"
-  "order_status" "text"
+  "order_status" "text" [note: 'One of placed, paid, shipped, cancelled.']
   "order_date" "date"
-  "quantity" "integer"
-  "unit_price" "numeric"
-  "amount" "numeric"
-  "discount" "numeric"
-  "channel" "text"
-  "region" "text"
+  "quantity" "integer" [note: 'Units ordered on this line.']
+  "unit_price" "numeric" [note: 'List price at the time of ordering, before discount.']
+  "amount" "numeric" [note: 'quantity * unit_price - discount.']
+  "discount" "numeric" [note: 'Absolute discount on this line. Zero when none was applied.']
+  "channel" "text" [note: 'Acquisition channel of the session that placed the order, from stg_web_sessions. Null when the order was placed offline.']
+  "region" "text" [note: 'Geo region of the ordering session, not the shipping address.']
 
-  Note: ""
+  Note: "One row per order line. Grain: order_number x sk_product. Amounts are net of discount, in the store currency."
 }
 //--configured at schema: shop.sales
 Table "model.shop.f_shipment" {
@@ -22,18 +22,18 @@ Table "model.shop.f_shipment" {
   "sk_product" "integer"
   "shipment_number" "text"
   "shipped_date" "date"
-  "carrier" "text"
+  "carrier" "text" [note: 'Carrier code as sent by the warehouse system.']
 
-  Note: ""
+  Note: "One row per shipment. A shipment can cover several order lines; join back to f_order through stg_shipments."
 }
 //--configured at schema: shop.sales
 Table "model.shop.d_customer" {
-  "sk_customer" "integer"
+  "sk_customer" "integer" [note: 'Surrogate key. Stable across CRM re-imports.']
   "customer_name" "text"
   "customer_city" "text"
-  "customer_segment" "text"
+  "customer_segment" "text" [note: 'CRM segment: consumer, small business or enterprise.']
 
-  Note: ""
+  Note: "Current view of every customer (type 1, no history). Sourced from the CRM."
   indexes {
     (sk_customer) [pk]
   }
@@ -42,10 +42,10 @@ Table "model.shop.d_customer" {
 Table "model.shop.d_product" {
   "sk_product" "integer"
   "product_name" "text"
-  "product_code" "text"
-  "category" "text"
+  "product_code" "text" [note: 'Human-readable SKU printed on labels. Unique, but can be reassigned after a product is discontinued.']
+  "category" "text" [note: 'Top-level category only. Sub-categories are not modelled.']
 
-  Note: ""
+  Note: "Sellable products. Discontinued products stay here so historic orders keep resolving."
   indexes {
     (sk_product) [pk]
   }
@@ -54,10 +54,10 @@ Table "model.shop.d_product" {
 Table "model.shop.f_stock" {
   "sk_product" "integer"
   "sk_warehouse" "integer"
-  "quantity_on_hand" "integer"
-  "reorder_level" "integer"
+  "quantity_on_hand" "integer" [note: 'Physical units in the warehouse at snapshot time, including reserved stock.']
+  "reorder_level" "integer" [note: 'Purchasing raises an order when quantity_on_hand drops below this value.']
 
-  Note: ""
+  Note: "Daily snapshot of on-hand stock per product and warehouse. Only the latest snapshot is kept."
 }
 //--configured at schema: shop.inventory
 Table "model.shop.d_warehouse" {
@@ -65,7 +65,7 @@ Table "model.shop.d_warehouse" {
   "warehouse_name" "text"
   "warehouse_region" "text"
 
-  Note: ""
+  Note: "Physical warehouses that hold stock."
   indexes {
     (sk_warehouse) [pk]
   }
@@ -74,18 +74,18 @@ Table "model.shop.d_warehouse" {
 Table "model.shop.d_employee" {
   "sk_employee" "integer"
   "employee_name" "text"
-  "department" "text"
+  "department" "text" [note: 'sales, warehouse or support.']
   "hire_date" "date"
 
-  Note: ""
+  Note: "Sales and warehouse staff. Leavers are kept for attribution of past orders."
 }
 //--configured at schema: shop.people
 Table "model.shop.f_sales_rep" {
   "sk_employee" "integer"
   "sk_customer" "integer"
-  "target_amount" "numeric"
+  "target_amount" "numeric" [note: 'Annual revenue target for this customer, in the store currency.']
 
-  Note: ""
+  Note: "Sales targets per employee and customer, one row per assignment."
 }
 //--configured at schema: shop.staging
 Table "model.shop.stg_orders" {
@@ -95,11 +95,11 @@ Table "model.shop.stg_orders" {
   "employee_id" "integer"
   "order_number" "text"
   "order_status" "text"
-  "ordered_at" "timestamp"
+  "ordered_at" "timestamp" [note: 'Source timestamp in UTC. f_order.order_date is this value truncated to a date.']
   "quantity" "integer"
   "unit_price" "numeric"
 
-  Note: ""
+  Note: "Cleaned copy of source.shop.orders with renamed columns. No business logic."
 }
 //--configured at schema: shop.staging
 Table "model.shop.stg_customers" {
@@ -165,7 +165,7 @@ Table "model.shop.stg_web_sessions" {
   "region" "text"
   "started_at" "timestamp"
 
-  Note: ""
+  Note: "Web sessions with a resolved customer and order, used to attribute channel and region to orders."
 }
 //--configured at schema: shop.raw
 Table "source.shop.orders" {
@@ -174,12 +174,12 @@ Table "source.shop.orders" {
   "product_id" "integer"
   "employee_id" "integer"
   "number" "text"
-  "status" "text"
+  "status" "text" [note: 'Free-text status from the shop application. Normalised in stg_orders.']
   "ordered_at" "timestamp"
   "qty" "integer"
   "price" "numeric"
 
-  Note: ""
+  Note: "Raw order lines from the shop database. Append-only."
 }
 //--configured at schema: shop.raw
 Table "source.shop.products" {
@@ -241,11 +241,11 @@ Table "source.shop.web_sessions" {
   "session_id" "text"
   "customer_id" "integer"
   "order_id" "integer"
-  "utm_channel" "text"
+  "utm_channel" "text" [note: 'Raw utm_medium value. Empty string when the tracker had no UTM parameters.']
   "geo_region" "text"
   "started_at" "timestamp"
 
-  Note: ""
+  Note: "Clickstream sessions from the web tracker. Late-arriving rows are common."
 }
 //Refs (based on the DBT Relationship Tests)
 Ref: "model.shop.f_order"."sk_customer" > "model.shop.d_customer"."sk_customer"
